@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(217, 245, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 235, 255, 0.5), transparent 40%),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  min-height: 100vh;
+}
+
+/* Glassmorphism Light */
+.glass-card {
+  @apply border border-white/60 bg-white/40 backdrop-blur-md;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+}
+
+.glass-card-hover {
+  @apply transition-all duration-300 hover:bg-white/60 hover:shadow-lg hover:shadow-slate-200/50 hover:border-white/80;
+}
+
+/* Premium Gradients */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600;
+}
+
+.bg-gradient-premium {
+  @apply bg-gradient-to-br from-indigo-500 via-blue-600 to-violet-500;
+}
+
+/* Smooth scrolling for Lenis */
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Shimmer effect for loading or cards */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
