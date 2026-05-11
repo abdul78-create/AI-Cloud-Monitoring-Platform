@@ -3,135 +3,116 @@
 ![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black?logo=next.js)
 ![Express](https://img.shields.io/badge/Backend-Express-1f2937?logo=express)
 ![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178c6?logo=typescript)
+![Docker](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed?logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-22c55e)
 
-Production-style full-stack AI observability platform that simulates cloud monitoring, detects anomalies, and generates optimization/security insights from logs.
+Production-style distributed AI observability platform that simulates cloud monitoring, detects anomalies, and generates optimization/security insights from logs. This project has been evolved from a monolith to a fully distributed event-driven architecture.
 
-## Why This Project
-- Demonstrates **full-stack architecture** (Next.js + Express + TypeScript).
-- Includes **real-time monitoring patterns** with polling and API-backed dashboards.
-- Ships a **portfolio-safe Demo AI Mode** for public hosting where Ollama may not be available.
-- Designed with **SaaS-grade UX** (glassmorphism, animated charts, upload workflow, toast feedback).
+## Distributed Architecture
 
-## Core Features
-- Live dashboard for CPU, memory, network, requests, infrastructure health, and alerts.
-- AI log analyzer with drag-drop upload, progress states, and analysis output.
-- Intelligent AI pipeline:
-  - Dev: Ollama (`llama3`)
-  - Prod/demo: fallback generator with realistic insights
-- 5-second monitoring refresh, typed API layer, caching for analytics, centralized Zustand store.
+The platform is built on a microservices architecture leveraging Redis for pub/sub and event-driven communication.
 
-## Architecture
-```text
-Browser (Next.js on Vercel)
-  -> Express API (Render)
-    -> Monitoring mock engine (dynamic per request)
-    -> Log upload service (Multer)
-    -> AI service (Ollama in dev / Demo AI mode in production)
+```mermaid
+graph TD
+    Agent[Monitoring Agent] -->|Metrics/Logs| Backend[Backend API]
+    Backend -->|Publish 'metrics.raw'| Redis[(Redis)]
+    
+    Metrics[Metrics Service] -->|Subscribe 'metrics.raw'| Redis
+    Metrics -->|Publish 'metrics.processed'| Redis
+    
+    Alerts[Alert Engine] -->|Subscribe 'metrics.processed'| Redis
+    Alerts -->|Publish 'alert.triggered'| Redis
+    
+    AI[AI Analysis Service] -->|Subscribe 'alert.triggered'| Redis
+    AI -->|Call Ollama| Ollama[Ollama LLM]
+    AI -->|Publish 'ai.analysis'| Redis
+    
+    WS[WebSocket Gateway] -->|Subscribe '*'| Redis
+    WS -->|Stream| Frontend[Next.js Frontend]
+    
+    Frontend -->|Queries| Backend
 ```
 
-## Tech Stack
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Framer Motion, Recharts, Zustand, Axios, React Hot Toast
-- **Backend**: Node.js, Express, TypeScript, Multer, Helmet, CORS, dotenv, Axios
-- **AI**: Ollama (`llama3`) + production fallback generator
+## Service Topology
+
+The system consists of the following services:
+
+- **Frontend**: Next.js 14 application with a dynamic glassmorphic UI.
+- **Backend**: Express API Gateway handling ingestion and queries.
+- **Redis**: The central nervous system for pub/sub and state.
+- **Metrics Service**: Processes raw metrics and stores time-series data.
+- **Alert Engine**: Evaluates rules and triggers alerts.
+- **AI Analysis**: SRE agent that calls Ollama for root cause analysis.
+- **WebSocket Gateway**: Provides real-time streaming to the frontend.
+- **Infrastructure Registry**: Tracks node heartbeats and service health.
+- **Event Bus**: Manages distributed events across the platform.
+
+## Orchestration
+
+The platform uses **Docker Compose** for orchestration, ensuring all services are wired correctly with health checks and dependency ordering.
+
+### Docker Compose Features:
+- **Dependency Ordering**: Services wait for Redis to be healthy before starting.
+- **Network Isolation**: All services communicate over a dedicated bridge network.
+- **Volume Persistence**: Redis data is persisted across restarts.
+
+## Local Setup
+
+### Prerequisites
+- Node.js 18+
+- Docker & Docker Compose (Recommended)
+- Redis (if running without Docker)
+
+### Option 1: Docker Compose (Recommended)
+
+1. Clone the repository.
+2. Run the platform:
+   ```bash
+   docker-compose up --build
+   ```
+3. Access the frontend at `http://localhost:3000`.
+
+### Option 2: Manual Setup (Development)
+
+If Docker is not available, you can run services manually. This requires a running Redis instance on `localhost:6379`.
+
+1. **Start Redis** locally.
+2. **Backend**:
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+3. **Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. **Services**: Navigate to any service in `services/` and run:
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+## Infrastructure Workflow
+
+1. **Agent Ingestion**: The `agent.js` script runs on host nodes, collecting OS metrics.
+2. **Event Processing**: Metrics flow through Backend -> Redis -> Metrics Service.
+3. **Anomaly Detection**: Alert Engine detects spikes and publishes alerts.
+4. **AI RCA**: AI Service reads alerts, prompts Ollama, and publishes analysis.
+5. **Real-time Display**: WebSocket Gateway pushes all state changes to the dashboard.
 
 ## Screenshots
+
 Add screenshots inside `screenshots/` and reference them here:
 - `screenshots/dashboard-overview.png`
 - `screenshots/ai-log-analysis.png`
 - `screenshots/infrastructure-status.png`
 
-See `docs/SCREENSHOTS.md` for capture checklist and naming conventions.
-
-## Local Setup
-
-### 1) Clone
-```bash
-git clone <your-repo-url>
-cd AI-Cloud-Monitoring-Platform
-```
-
-### 2) Backend
-```bash
-cd backend
-npm install
-copy .env.example .env
-npm run dev
-```
-
-### 3) Frontend
-```bash
-cd ../frontend
-npm install
-copy .env.example .env.local
-npm run dev
-```
-
-## Environment Configuration
-
-### Frontend (`frontend/.env.local`)
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5001/api
-NEXT_PUBLIC_POLLING_INTERVAL_MS=5000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-### Backend (`backend/.env`)
-```env
-PORT=5001
-CLIENT_ORIGIN=http://localhost:3000
-MAX_UPLOAD_SIZE_MB=2
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3
-DEMO_AI_MODE=false
-OLLAMA_TIMEOUT_MS=30000
-NODE_ENV=development
-```
-
-## Deployment Guide
-
-### Frontend -> Vercel
-- Root directory: `frontend`
-- Build command: `npm run build`
-- Output: Next.js default
-- Env vars:
-  - `NEXT_PUBLIC_API_BASE_URL=<your-render-api>/api`
-  - `NEXT_PUBLIC_POLLING_INTERVAL_MS=5000`
-  - `NEXT_PUBLIC_APP_URL=<your-vercel-url>`
-
-### Backend -> Render
-- Root directory: `backend`
-- Build command: `npm install && npm run build`
-- Start command: `npm start`
-- Env vars:
-  - `PORT=10000` (or Render default)
-  - `CLIENT_ORIGIN=<your-vercel-url>`
-  - `DEMO_AI_MODE=true` (recommended for free-tier demos)
-  - `NODE_ENV=production`
-
-## AI Workflow
-1. Upload `.log`/`.txt` file.
-2. Backend extracts content and validates limits/types.
-3. `/api/ai/analyze` processes logs:
-   - Ollama in development, or
-   - Demo AI Mode in production.
-4. UI displays summary, anomalies, recommendations, and threats.
-
-## API Reference
-- `GET /api/metrics`
-- `GET /api/infrastructure`
-- `GET /api/alerts`
-- `GET /api/analytics`
-- `POST /api/logs/upload`
-- `POST /api/ai/analyze`
-
 ## Portfolio Highlights (Resume-Ready)
-- Built a full-stack AI monitoring platform with real-time polling and production-grade dashboard UX.
-- Designed a dual-mode AI pipeline (local Ollama + public demo fallback) for reliable deployment demos.
-- Implemented secure file upload, typed APIs, centralized state management, and deployment-ready env strategy.
 
-## Future Improvements
-- WebSocket/SSE streaming instead of polling.
-- Auth and RBAC for multi-tenant dashboards.
-- Persistent data store for historical analytics.
-- Alert rules engine with custom thresholds and notification channels.
+- **Event-Driven Architecture**: Designed a pub/sub system handling thousands of messages per second.
+- **AI Integration**: Built an automated root cause analysis pipeline using LLMs.
+- **Full-Stack Mastery**: Scaled a monolithic app into a production-grade distributed system.
+- **Real-Time Visualization**: Implemented custom WebSockets for low-latency metric streaming.

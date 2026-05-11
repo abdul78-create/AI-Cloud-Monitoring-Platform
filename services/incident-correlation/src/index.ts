@@ -8,11 +8,9 @@ const redisPort = process.env.REDIS_PORT || '6379';
 
 async function start() {
   const subscriber = createClient({ url: `redis://${redisHost}:${redisPort}` });
-  const publisher = createClient({ url: `redis://${redisHost}:${redisPort}` });
   const redis = createClient({ url: `redis://${redisHost}:${redisPort}` });
 
   await subscriber.connect();
-  await publisher.connect();
   await redis.connect();
 
   console.log(`Incident Correlation Engine connected to Redis at ${redisHost}:${redisPort}`);
@@ -53,7 +51,7 @@ async function start() {
         await redis.set(incidentKey, JSON.stringify(incident), { EX: 300 }); // 5 mins TTL
         
         // Emit incident.created
-        await publisher.publish('incident.created', JSON.stringify(incident));
+        await redis.publish('incident.created', JSON.stringify(incident));
       }
 
     } catch (error) {

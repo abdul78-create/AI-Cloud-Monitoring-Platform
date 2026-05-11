@@ -80,7 +80,7 @@ Provide a short root cause analysis and a recommendation in 2-3 lines.`;
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { response: string };
           console.log(`[AI] Analysis Result:\n${data.response}`);
 
           // Emit event

@@ -19,12 +19,16 @@ type MonitoringState = {
   uploadProgress: number;
   isAnalyzing: boolean;
   socket: Socket | null;
+  theme: "light" | "dark";
+  timeline: any[];
   
   fetchDashboardData: (initial?: boolean) => Promise<void>;
   fetchServiceHealth: () => Promise<void>;
   runLogAnalysis: (file: File) => Promise<void>;
   clearAiResult: () => void;
   initSocket: () => void;
+  setTheme: (theme: "light" | "dark") => void;
+  addTimelineEvent: (event: any) => void;
 };
 
 export const useMonitoringStore = create<MonitoringState>((set, get) => ({
@@ -41,6 +45,30 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   uploadProgress: 0,
   isAnalyzing: false,
   socket: null,
+  theme: "dark", // Default to dark as requested
+  timeline: [
+    { id: "1", type: "info", message: "Service 'api-gateway' health check passed.", timestamp: new Date(Date.now() - 5000) },
+    { id: "2", type: "ai", message: "Analyzing log stream for pattern anomaly in cluster-B...", timestamp: new Date(Date.now() - 15000) },
+    { id: "3", type: "warning", message: "High latency (1.2s) detected on 'db-write' replica.", timestamp: new Date(Date.now() - 30000) },
+    { id: "4", type: "info", message: "Deploy 'v1.2.4' started by user 'ops_admin'.", timestamp: new Date(Date.now() - 45000) },
+  ],
+
+  addTimelineEvent: (event) => {
+    set((state) => ({
+      timeline: [
+        { id: Date.now().toString(), timestamp: new Date(), ...event },
+        ...state.timeline
+      ].slice(0, 50) // Keep last 50
+    }));
+  },
+
+  setTheme: (theme) => {
+    set({ theme });
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      localStorage.setItem("theme", theme);
+    }
+  },
 
   fetchDashboardData: async (initial = false) => {
     set((state) => ({

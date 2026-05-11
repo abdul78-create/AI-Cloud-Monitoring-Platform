@@ -28,25 +28,25 @@ export default function AIInsightsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 text-xs font-medium text-indigo-600 mb-2">
+        <div className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-full px-3 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-2">
           <Sparkles size={12} />
           <span>Powered by Ollama Llama3</span>
         </div>
-        <h1 className="text-2xl font-bold font-display text-slate-900">AI Insights Center</h1>
-        <p className="text-sm text-slate-500">Predictive analytics and intelligent recommendations for your stack.</p>
+        <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">AI Insights Center</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Predictive analytics and intelligent recommendations for your stack.</p>
       </div>
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Main AI Summary */}
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Predictive Resource Trend</h2>
-              <p className="text-xs text-slate-500">AI forecasted usage for the next 7 days.</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Predictive Resource Trend</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">AI forecasted usage for the next 7 days.</p>
             </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <TrendingUp size={14} /> Confidence: 94%
             </div>
           </div>
@@ -75,10 +75,10 @@ export default function AIInsightsPage() {
         </div>
 
         {/* Health Score Pie */}
-        <div className="glass-card rounded-2xl p-6 border-white/80 shadow-sm flex flex-col justify-between">
+        <div className="glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Infrastructure Health</h2>
-            <p className="text-xs text-slate-500">AI assessment of overall stability.</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Infrastructure Health</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">AI assessment of overall stability.</p>
           </div>
 
           <div className="h-[200px] flex justify-center items-center">
@@ -93,8 +93,8 @@ export default function AIInsightsPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute text-center">
-              <div className="text-3xl font-bold text-slate-900">85%</div>
-              <div className="text-xs text-slate-500 font-medium">Score</div>
+              <div className="text-3xl font-bold text-slate-900 dark:text-white">85%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Score</div>
             </div>
           </div>
 
@@ -115,51 +115,51 @@ export default function AIInsightsPage() {
         </div>
 
         {/* Recommendations List */}
-        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">AI Recommendations</h2>
+        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">AI Recommendations</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Card 1 */}
-            <div className="bg-white border border-slate-100 rounded-xl p-4 hover:border-indigo-100 transition-all">
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:border-indigo-100 dark:hover:border-indigo-500 transition-all">
               <div className="flex justify-between items-start mb-2">
-                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
                   <Zap size={16} />
                 </div>
-                <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-0.5 rounded-full">High Impact</span>
+                <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-full">High Impact</span>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">Scale Down Idle DB Replica</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">The write-replica has been under 20% utilization for 5 days. Scaling down can save $120/mo.</p>
-              <button className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Scale Down Idle DB Replica</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">The write-replica has been under 20% utilization for 5 days. Scaling down can save $120/mo.</p>
+              <button className="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
                 Apply Fix <ArrowRight size={12} />
               </button>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-white border border-slate-100 rounded-xl p-4 hover:border-indigo-100 transition-all">
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:border-indigo-100 dark:hover:border-indigo-500 transition-all">
               <div className="flex justify-between items-start mb-2">
-                <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
                   <AlertTriangle size={16} />
                 </div>
-                <span className="bg-amber-50 text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full">Medium</span>
+                <span className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full">Medium</span>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">API Gateway Latency Spike</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">Detected a 1.2s latency increase on /v1/users. Likely caused by unindexed DB query.</p>
-              <button className="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">API Gateway Latency Spike</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">Detected a 1.2s latency increase on /v1/users. Likely caused by unindexed DB query.</p>
+              <button className="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
                 Investigate <ArrowRight size={12} />
               </button>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-white border border-slate-100 rounded-xl p-4 hover:border-indigo-100 transition-all">
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:border-indigo-100 dark:hover:border-indigo-500 transition-all">
               <div className="flex justify-between items-start mb-2">
-                <div className="p-2 rounded-lg bg-rose-50 text-rose-600">
+                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
                   <Shield size={16} />
                 </div>
-                <span className="bg-rose-50 text-rose-600 text-xs font-bold px-2 py-0.5 rounded-full">Critical</span>
+                <span className="bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-xs font-bold px-2 py-0.5 rounded-full">Critical</span>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1">Suspicious Access Pattern</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">IP 192.168.1.45 attempted 50 invalid logins in 2 mins. AI recommends blocking IP.</p>
-              <button className="mt-3 text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Suspicious Access Pattern</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">IP 192.168.1.45 attempted 50 invalid logins in 2 mins. AI recommends blocking IP.</p>
+              <button className="mt-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-1">
                 Block IP <ArrowRight size={12} />
               </button>
             </div>

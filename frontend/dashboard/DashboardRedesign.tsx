@@ -24,6 +24,7 @@ export const DashboardRedesign = () => {
   const analytics = useMonitoringStore((state) => state.analytics);
   const aiResult = useMonitoringStore((state) => state.aiResult);
   const serviceHealth = useMonitoringStore((state) => state.serviceHealth) || [];
+  const timeline = useMonitoringStore((state) => state.timeline) || [];
 
   // Derived data
   const latestMetric = metrics[metrics.length - 1] || { cpu: 0, memory: 0, networkTrafficMbps: 0 };
@@ -144,34 +145,37 @@ export const DashboardRedesign = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="p-1 rounded-md bg-rose-50 text-rose-600">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-2 mb-1 relative">
+                      <div className="p-1 rounded-md bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
                         <AlertTriangle size={12} />
                       </div>
-                      <span className="text-xs font-bold text-slate-800">Anomaly Detected</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-white">Anomaly Detected</span>
                     </div>
-                    <p className="text-xs text-slate-600">Memory usage spiked by 15% in cluster-A without traffic increase.</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 relative">Memory pressure detected in **cluster-A**. Spiked by 15% without traffic increase.</p>
                   </div>
 
-                  <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="p-1 rounded-md bg-emerald-50 text-emerald-600">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-2 mb-1 relative">
+                      <div className="p-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
                         <CheckCircle2 size={12} />
                       </div>
-                      <span className="text-xs font-bold text-slate-800">Optimization Action</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-white">Predictive Action</span>
                     </div>
-                    <p className="text-xs text-slate-600">Recommended: Scale down idle DB replica to save 20% cost.</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 relative">AI predicts scaling event within **10 minutes** for us-east cluster.</p>
                   </div>
 
-                  <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="p-1 rounded-md bg-indigo-50 text-indigo-600">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-2 mb-1 relative">
+                      <div className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                         <Zap size={12} />
                       </div>
-                      <span className="text-xs font-bold text-slate-800">Predictive Alert</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-white">Traffic Insight</span>
                     </div>
-                    <p className="text-xs text-slate-600">Storage expected to reach capacity in 4 days at current rate.</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 relative">Traffic increasing in **us-east** cluster. Recommend pre-emptive scaling.</p>
                   </div>
                 </div>
                 
@@ -257,27 +261,28 @@ export const DashboardRedesign = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3 font-mono text-xs text-slate-600">
-                  <div className="flex items-start gap-2">
-                    <span className="text-slate-400">[14:25:01]</span>
-                    <span className="text-emerald-600 font-bold">INFO:</span>
-                    <span>Service 'api-gateway' health check passed.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-slate-400">[14:24:45]</span>
-                    <span className="text-indigo-600 font-bold">AI:</span>
-                    <span>Analyzing log stream for pattern anomaly in cluster-B...</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-slate-400">[14:24:30]</span>
-                    <span className="text-rose-600 font-bold">WARN:</span>
-                    <span>High latency (1.2s) detected on 'db-write' replica.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-slate-400">[14:24:12]</span>
-                    <span className="text-slate-400 font-bold">LOG:</span>
-                    <span>Deploy 'v1.2.4' started by user 'ops_admin'.</span>
-                  </div>
+                <div className="space-y-3 font-mono text-xs text-slate-600 max-h-[150px] overflow-y-auto custom-scrollbar">
+                  <AnimatePresence>
+                    {timeline.map((event) => (
+                      <motion.div 
+                        key={event.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="flex items-start gap-2"
+                      >
+                        <span className="text-slate-400">[{new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
+                        <span className={`font-bold ${
+                          event.type === 'info' ? 'text-emerald-600' :
+                          event.type === 'ai' ? 'text-indigo-600' :
+                          event.type === 'warning' ? 'text-amber-600' :
+                          event.type === 'critical' ? 'text-rose-600' :
+                          'text-slate-600'
+                        }`}>{event.type?.toUpperCase()}:</span>
+                        <span className="dark:text-slate-300">{event.message}</span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
 

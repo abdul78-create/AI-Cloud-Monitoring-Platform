@@ -139,7 +139,7 @@ async function start() {
       try {
         const response = await fetch(service.url);
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { status: string; redis: string; timestamp: string };
           await redisClient.hSet(`service_health:${service.name}`, {
             status: data.status,
             redis: data.redis,

@@ -41,10 +41,10 @@ export default function LiveMonitoringPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold font-display text-slate-900">Live Monitoring</h1>
-          <p className="text-sm text-slate-500">Real-time infrastructure pulse and node status.</p>
+          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">Live Monitoring</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Real-time infrastructure pulse and node status.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-medium text-emerald-600">
+        <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
           <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live Streaming
         </div>
       </div>
@@ -53,13 +53,18 @@ export default function LiveMonitoringPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Live Throughput */}
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
+        <motion.div 
+          className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm transition-colors duration-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Global Throughput</h2>
-              <p className="text-xs text-slate-500">Requests per second across all regions.</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Global Throughput</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Requests per second across all regions.</p>
             </div>
-            <div className="text-2xl font-bold text-indigo-600">
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
               {data[data.length - 1].value} RPS
             </div>
           </div>
@@ -68,75 +73,97 @@ export default function LiveMonitoringPage() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
                 <YAxis hide domain={[0, 100]} />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                    borderColor: '#e2e8f0',
+                    borderRadius: '0.5rem'
+                  }}
+                  itemStyle={{ color: '#1e293b' }}
+                />
                 <Line type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={3} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Region Map Mock */}
-        <div className="glass-card rounded-2xl p-6 border-white/80 shadow-sm flex flex-col justify-between">
+        <motion.div 
+          className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors duration-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Active Regions</h2>
-            <p className="text-xs text-slate-500">Traffic distribution.</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Active Regions</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Traffic distribution.</p>
           </div>
           
           <div className="space-y-3 my-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-600">us-east-1 (N. Virginia)</span>
-              <span className="font-bold text-slate-900">65%</span>
+              <span className="text-slate-600 dark:text-slate-300">us-east-1 (N. Virginia)</span>
+              <span className="font-bold text-slate-900 dark:text-white">65%</span>
             </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full">
               <div className="bg-indigo-600 h-full rounded-full" style={{ width: '65%' }} />
             </div>
 
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-600">us-west-2 (Oregon)</span>
-              <span className="font-bold text-slate-900">20%</span>
+              <span className="text-slate-600 dark:text-slate-300">us-west-2 (Oregon)</span>
+              <span className="font-bold text-slate-900 dark:text-white">20%</span>
             </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full">
               <div className="bg-violet-600 h-full rounded-full" style={{ width: '20%' }} />
             </div>
 
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-600">eu-central-1 (Frankfurt)</span>
-              <span className="font-bold text-slate-900">15%</span>
+              <span className="text-slate-600 dark:text-slate-300">eu-central-1 (Frankfurt)</span>
+              <span className="font-bold text-slate-900 dark:text-white">15%</span>
             </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full">
               <div className="bg-cyan-500 h-full rounded-full" style={{ width: '15%' }} />
             </div>
           </div>
 
-          <button className="w-full bg-slate-900 text-white rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 transition-all">
+          <button className="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 dark:hover:bg-indigo-500 dark:hover:text-white transition-all">
             View Global Map
           </button>
-        </div>
+        </motion.div>
 
         {/* Server Grid */}
-        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Active Nodes</h2>
+        <motion.div 
+          className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm transition-colors duration-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Active Nodes</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {servers.map((server, i) => (
-              <div key={i} className="bg-white border border-slate-100 rounded-xl p-4 hover:border-indigo-100 transition-all">
+              <motion.div 
+                key={i} 
+                className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:border-indigo-100 dark:hover:border-indigo-500 transition-all"
+                whileHover={{ scale: 1.02, translateY: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <div className={`p-2 rounded-lg ${server.status === 'up' ? 'bg-emerald-50 text-emerald-600' : server.status === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                  <div className={`p-2 rounded-lg ${server.status === 'up' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' : server.status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600'}`}>
                     <Server size={16} />
                   </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${server.status === 'up' ? 'bg-emerald-50 text-emerald-600' : server.status === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${server.status === 'up' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' : server.status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600'}`}>
                     {server.status.toUpperCase()}
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-1">{server.name}</h3>
-                <div className="text-xs text-slate-500 flex justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{server.name}</h3>
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex justify-between">
                   <span>Region: {server.region}</span>
-                  <span className="font-semibold text-slate-700">Load: {server.load}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Load: {server.load}</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
       </div>
     </div>

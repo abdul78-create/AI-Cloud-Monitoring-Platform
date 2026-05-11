@@ -4,30 +4,58 @@
 
 :root {
   color-scheme: light;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --glass-shadow: rgba(31, 38, 135, 0.04);
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+}
+
+.dark {
+  color-scheme: dark;
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(51, 65, 85, 0.5);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+  --card-bg: #0f172a;
+  --card-border: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 antialiased transition-colors duration-500;
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(217, 245, 255, 0.5), transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(245, 235, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 10% 20%, rgba(217, 245, 255, 0.3), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 235, 255, 0.3), transparent 40%),
     linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   min-height: 100vh;
 }
 
-/* Glassmorphism Light */
+.dark body {
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.5), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(15, 23, 42, 0.5), transparent 40%),
+    linear-gradient(135deg, #0f172a 0%, #020617 100%);
+}
+
+/* Glassmorphism System */
 .glass-card {
-  @apply border border-white/60 bg-white/40 backdrop-blur-md;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  @apply rounded-2xl transition-all duration-300;
 }
 
 .glass-card-hover {
-  @apply transition-all duration-300 hover:bg-white/60 hover:shadow-lg hover:shadow-slate-200/50 hover:border-white/80;
+  @apply hover:shadow-lg hover:shadow-indigo-500/5 dark:hover:shadow-indigo-900/5 hover:border-indigo-200 dark:hover:border-indigo-800;
 }
 
 /* Premium Gradients */
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 dark:from-indigo-400 dark:via-blue-400 dark:to-violet-400;
 }
 
 .bg-gradient-premium {
@@ -65,4 +93,23 @@ html.lenis {
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite linear;
+}
+
+.dark .shimmer {
+  background: linear-gradient(90deg, rgba(15,23,42,0) 0%, rgba(255,255,255,0.1) 50%, rgba(15,23,42,0) 100%);
+  background-size: 200% 100%;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors;
 }

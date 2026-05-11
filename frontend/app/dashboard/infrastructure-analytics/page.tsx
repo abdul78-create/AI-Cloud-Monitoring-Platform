@@ -17,18 +17,23 @@ const data = [
 
 export default function InfrastructureAnalyticsPage() {
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display text-slate-900">Infrastructure Analytics</h1>
-          <p className="text-sm text-slate-500">Deep dive into historical performance and resource utilization.</p>
+          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">Infrastructure Analytics</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Deep dive into historical performance and resource utilization.</p>
         </div>
         <div className="flex gap-2">
-          <button className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+          <button className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm">
             <Filter size={14} /> Filter
           </button>
-          <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-sm shadow-indigo-100">
+          <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-sm shadow-indigo-100 dark:shadow-indigo-900/30">
             <Download size={14} /> Export Data
           </button>
         </div>
@@ -38,15 +43,22 @@ export default function InfrastructureAnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Resource Utilization */}
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Resource Utilization</h2>
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Resource Utilization</h2>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                 <YAxis stroke="#94a3b8" fontSize={12} />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                    borderColor: '#e2e8f0',
+                    borderRadius: '0.5rem'
+                  }}
+                  itemStyle={{ color: '#1e293b' }}
+                />
                 <Bar dataKey="cpu" fill="#4f46e5" radius={[4, 4, 0, 0]} name="CPU %" />
                 <Bar dataKey="mem" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Memory %" />
               </BarChart>
@@ -55,47 +67,54 @@ export default function InfrastructureAnalyticsPage() {
         </div>
 
         {/* Efficiency Score */}
-        <div className="glass-card rounded-2xl p-6 border-white/80 shadow-sm flex flex-col justify-between">
+        <div className="glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Efficiency Score</h2>
-            <p className="text-xs text-slate-500">How well resources are utilized.</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Efficiency Score</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">How well resources are utilized.</p>
           </div>
 
           <div className="text-center my-6">
-            <div className="text-5xl font-bold text-slate-900 font-display">92<span className="text-3xl text-slate-400">/100</span></div>
-            <p className="text-sm text-emerald-600 font-medium mt-1">Excellent Efficiency</p>
+            <div className="text-5xl font-bold text-slate-900 dark:text-white font-display">92<span className="text-3xl text-slate-400 dark:text-slate-500">/100</span></div>
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mt-1">Excellent Efficiency</p>
           </div>
 
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span>CPU Oversupply</span>
-              <span className="font-semibold text-slate-900">Low (8%)</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Low (8%)</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span>Memory Waist</span>
-              <span className="font-semibold text-slate-900">Medium (15%)</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Medium (15%)</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span>Idle Instances</span>
-              <span className="font-semibold text-slate-900">2 Nodes</span>
+              <span className="font-semibold text-slate-900 dark:text-white">2 Nodes</span>
             </div>
           </div>
           
-          <button className="w-full mt-4 bg-slate-900 text-white rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 transition-all">
+          <button className="w-full mt-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-all">
             Optimize Resources
           </button>
         </div>
 
         {/* Network Traffic */}
-        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Network Traffic (MB/s)</h2>
+        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Network Traffic (MB/s)</h2>
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--card-border)" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                 <YAxis stroke="#94a3b8" fontSize={12} />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                    borderColor: '#e2e8f0',
+                    borderRadius: '0.5rem'
+                  }}
+                  itemStyle={{ color: '#1e293b' }}
+                />
                 <Line type="monotone" dataKey="net" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -103,6 +122,6 @@ export default function InfrastructureAnalyticsPage() {
         </div>
 
       </div>
-    </div>
+    </motion.div>
   );
 }
