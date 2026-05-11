@@ -38,7 +38,7 @@ export default function AIInsightsPage() {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Main AI Summary */}
         <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -56,12 +56,12 @@ export default function AIInsightsPage() {
               <AreaChart data={mockTrendData}>
                 <defs>
                   <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorMem" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
@@ -117,7 +117,7 @@ export default function AIInsightsPage() {
         {/* Recommendations List */}
         <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">AI Recommendations</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Card 1 */}
             <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 hover:border-indigo-100 dark:hover:border-indigo-500 transition-all">
