@@ -1,0 +1,4 @@
+[2026-05-12T14:00:00Z] INFO: System started.
+[2026-05-12T14:05:00Z] WARNING: High memory usage detected.
+[2026-05-12T14:10:00Z] ERROR: Database connection failed.
+[2026-05-12T14:15:00Z] INFO: Database connection restored.

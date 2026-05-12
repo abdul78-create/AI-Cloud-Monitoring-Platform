@@ -72,9 +72,9 @@ export default function LandingRedesign() {
 
   return (
     <div ref={containerRef} className="relative min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden font-sans transition-colors duration-500">
-      {/* Glow effect background (Kept but cleaned up) */}
-      <div ref={blobRef} className="pointer-events-none fixed -left-20 -top-20 h-96 w-96 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 opacity-50 blur-3xl" style={{ transform: 'translate(-50%, -50%)' }} />
-      <div className="pointer-events-none fixed right-0 bottom-0 h-[500px] w-[500px] rounded-full bg-violet-500/10 dark:bg-violet-500/10 opacity-30 blur-3xl" />
+      {/* Glow effect background (Made subtle) */}
+      <div ref={blobRef} className="pointer-events-none fixed -left-20 -top-20 h-96 w-96 rounded-full bg-slate-400/5 dark:bg-indigo-500/5 opacity-50 blur-3xl" style={{ transform: 'translate(-50%, -50%)' }} />
+      <div className="pointer-events-none fixed right-0 bottom-0 h-[500px] w-[500px] rounded-full bg-slate-400/5 dark:bg-violet-500/5 opacity-30 blur-3xl" />
       
       {/* Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_00%,#000_70%,transparent_100%)] opacity-20 dark:opacity-30" />
@@ -149,90 +149,102 @@ const Navbar = ({ theme, toggleTheme }: { theme: "light" | "dark", toggleTheme: 
 // Hero Section Component (Simplified & Centered)
 const Hero = ({ theme }: { theme: "light" | "dark" }) => {
   return (
-    <section className="relative mx-auto max-w-5xl px-6 pt-24 pb-32 text-center">
+    <section className="relative mx-auto max-w-6xl px-6 pt-20 pb-32 text-center">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10"
       >
-        <div className="inline-flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 shadow-sm rounded-full px-4 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-8">
-          <Sparkles size={12} />
-          <span>Next-Gen Observability Platform</span>
+        <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-full px-4 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 mb-6">
+          <Sparkles size={12} className="text-indigo-600 dark:text-indigo-400" />
+          <span>AI Infrastructure Intelligence Platform</span>
         </div>
         
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-6">
-          AI Infrastructure Intelligence <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">for Modern Cloud Systems</span>
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.1] mb-6">
+          Observability for the <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">Next Generation of Cloud</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed mb-10">
-          Simplify your monitoring stack. Our platform provides elite, AI-driven observability with real-time root cause analysis and dynamic infrastructure mapping.
+        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
+          A professional, enterprise-grade platform for AI operations, topology intelligence, and incident monitoring. Built for modern infrastructure teams.
         </p>
         
-        <div className="flex justify-center gap-4 mb-16">
-          <Link href="/dashboard" className="rounded-xl bg-indigo-600 px-6 py-3.5 font-semibold text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-indigo-100 dark:hover:shadow-indigo-900/30 flex items-center gap-2 group">
-            Launch Dashboard <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+        <div className="flex justify-center gap-4 mb-20">
+          <Link href="/dashboard" className="rounded-lg bg-slate-900 dark:bg-slate-50 px-6 py-3 font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-sm flex items-center gap-2 group">
+            Get Started <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
           </Link>
-          <Link href="#how-it-works" className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-3.5 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">
-            Learn More
+          <Link href="#docs" className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-6 py-3 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
+            View Documentation
           </Link>
         </div>
 
-        {/* Simplified Live Metrics / Dashboard Preview */}
+        {/* Elegant Dashboard Preview */}
         <motion.div 
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="relative max-w-4xl mx-auto"
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative max-w-5xl mx-auto"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 rounded-3xl blur-3xl -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-violet-500/5 rounded-2xl blur-2xl -z-10" />
           
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-premium p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">System Live Status</span>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700" />
+                </div>
+                <span className="text-xs font-medium text-slate-400 dark:text-slate-500 ml-2">dashboard.cloudai.io</span>
               </div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">Real-time updates</div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">All systems operational</span>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 text-left">Avg CPU Usage</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white text-left">42.8%</div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                  <div className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full" style={{ width: '42.8%' }} />
+            <div className="grid grid-cols-12 gap-4">
+              {/* Sidebar Minimized */}
+              <div className="col-span-1 border-r border-slate-100 dark:border-slate-800 pr-2 flex flex-col gap-4 items-center">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">C</div>
+                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+              </div>
+              
+              {/* Main Content Area */}
+              <div className="col-span-11 space-y-4">
+                <div className="grid grid-cols-4 gap-4">
+                  {[
+                    { label: "Cluster Health", val: "99.8%", status: "Good" },
+                    { label: "Active Nodes", val: "1,240", status: "Stable" },
+                    { label: "Avg Latency", val: "14ms", status: "Optimal" },
+                    { label: "Error Rate", val: "0.02%", status: "Low" },
+                  ].map((item, i) => (
+                    <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-100 dark:border-slate-800 text-left">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{item.label}</div>
+                      <div className="text-xl font-bold text-slate-900 dark:text-white">{item.val}</div>
+                      <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{item.status}</div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="h-40 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <Area type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={1.5} fillOpacity={1} fill="url(#colorValue)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 text-left">Memory Load</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white text-left">68.1%</div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                  <div className="bg-violet-600 dark:bg-violet-400 h-full rounded-full" style={{ width: '68.1%' }} />
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 text-left">Edge Latency</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white text-left">14ms</div>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
-                  <div className="bg-emerald-500 dark:bg-emerald-400 h-full rounded-full" style={{ width: '20%' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="h-48 w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={theme === "dark" ? 0.4 : 0.2}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
-                </AreaChart>
-              </ResponsiveContainer>
             </div>
           </div>
         </motion.div>
@@ -415,20 +427,19 @@ const QuickStartDocs = () => (
 
 // CTA Section Component
 const CTASection = () => (
-  <section className="mx-auto max-w-7xl px-6 py-32 text-center relative">
-    <div className="absolute inset-0 bg-indigo-600 dark:bg-indigo-700 rounded-[40px] -z-10 shadow-xl shadow-indigo-900/10" />
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:2rem_2rem] rounded-[40px] -z-10" />
-    
-    <div className="py-16 px-6 text-white max-w-3xl mx-auto">
-      <h2 className="text-4xl font-bold tracking-tight font-display mb-4">Ready to Optimize Your Infrastructure?</h2>
-      <p className="text-indigo-100 text-lg mb-8 leading-relaxed">
+  <section className="mx-auto max-w-4xl px-6 py-24 text-center">
+    <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900 p-12">
+      <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
+        Ready to Optimize Your Infrastructure?
+      </h2>
+      <p className="text-slate-600 dark:text-slate-400 text-base mb-8 max-w-xl mx-auto leading-relaxed">
         Deploy our lightweight agent and get intelligent, actionable insights in less than 5 minutes. No credit card required.
       </p>
       <div className="flex flex-wrap justify-center gap-4">
-        <Link href="/dashboard" className="rounded-xl bg-white px-6 py-3.5 font-semibold text-indigo-600 hover:bg-slate-50 transition-all shadow-lg flex items-center gap-2 group">
-          Get Started Free <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+        <Link href="/dashboard" className="rounded-lg bg-slate-900 dark:bg-slate-50 px-5 py-2.5 font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-sm flex items-center gap-2 group text-sm">
+          Get Started Free <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
         </Link>
-        <Link href="/dashboard" className="rounded-xl border border-white/30 px-6 py-3.5 font-semibold text-white hover:bg-white/10 transition-all">
+        <Link href="/dashboard" className="rounded-lg border border-slate-200 dark:border-slate-700 px-5 py-2.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-sm">
           Try AI Assistant
         </Link>
       </div>

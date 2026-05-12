@@ -9,7 +9,12 @@ import { useMonitoringPolling } from "@/hooks/useMonitoringPolling";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { SidebarNav } from "@/dashboard/components/SidebarNav";
 import { TopNavbar } from "@/dashboard/components/TopNavbar";
-import { AIAssistant } from "@/dashboard/components/AIAssistant";
+import dynamic from 'next/dynamic';
+
+const AIAssistant = dynamic(() => import('@/dashboard/components/AIAssistant').then(mod => mod.AIAssistant), {
+  ssr: false,
+  loading: () => <div className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-slate-200 animate-pulse" />
+});
 
 // Main Component
 export const DashboardRedesign = () => {
@@ -53,14 +58,14 @@ export const DashboardRedesign = () => {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-2xl font-bold font-display text-slate-900">Enterprise Observability</h1>
-                <p className="text-sm text-slate-500">Real-time AI monitoring and infrastructure intelligence.</p>
+                <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">Enterprise Observability</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Real-time AI monitoring and infrastructure intelligence.</p>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-xl border border-slate-200/60 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-                  <RefreshCw size={14} className="text-slate-500" /> Refresh
+                <button className="rounded-xl border border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm">
+                  <RefreshCw size={14} className="text-slate-500 dark:text-slate-400" /> Refresh
                 </button>
-                <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-sm shadow-indigo-100">
+                <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-sm shadow-indigo-100 dark:shadow-none">
                   <Zap size={14} /> Run AI Scan
                 </button>
               </div>
@@ -73,11 +78,11 @@ export const DashboardRedesign = () => {
                   key={stat.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="glass-card rounded-2xl p-5 border-white/80 shadow-sm hover:shadow-premium transition-all duration-300"
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  className="glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-premium transition-all duration-300"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <div className={`p-2 rounded-xl bg-slate-100 text-slate-600`}>
+                    <div className={`p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400`}>
                       <stat.icon size={18} />
                     </div>
                     <div className={`flex items-center text-xs font-medium ${stat.trend > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -85,12 +90,12 @@ export const DashboardRedesign = () => {
                       {Math.abs(stat.trend)}%
                     </div>
                   </div>
-                  <div className="text-xs font-medium text-slate-500">{stat.label}</div>
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{stat.label}</div>
                   <div className="flex items-baseline gap-1 mt-0.5">
-                    <div className="text-3xl font-bold font-display text-slate-900">{stat.value}</div>
-                    <div className="text-sm font-medium text-slate-400">{stat.unit}</div>
+                    <div className="text-3xl font-bold font-display text-slate-900 dark:text-white">{stat.value}</div>
+                    <div className="text-sm font-medium text-slate-400 dark:text-slate-500">{stat.unit}</div>
                   </div>
-                  <div className="w-full bg-slate-100 h-1 rounded-full mt-3 overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full mt-3 overflow-hidden">
                     <div className={`h-full rounded-full ${stat.tone === 'indigo' ? 'bg-indigo-600' : stat.tone === 'violet' ? 'bg-violet-600' : stat.tone === 'cyan' ? 'bg-cyan-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(stat.value, 100)}%` }} />
                   </div>
                 </motion.div>
@@ -100,16 +105,16 @@ export const DashboardRedesign = () => {
             {/* 2. Charts Section & 3. AI Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Charts */}
-              <div className="lg:col-span-2 glass-card rounded-2xl p-5 border-white/80 shadow-sm">
+              <div className="lg:col-span-2 glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Infrastructure Performance</h3>
-                    <p className="text-xs text-slate-500">Live telemetry analysis.</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Infrastructure Performance</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Live telemetry analysis.</p>
                   </div>
-                  <div className="flex bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
-                    <button onClick={() => setActiveChartTab("cpu")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "cpu" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>CPU</button>
-                    <button onClick={() => setActiveChartTab("memory")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "memory" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>Memory</button>
-                    <button onClick={() => setActiveChartTab("network")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "network" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>Network</button>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-medium">
+                    <button onClick={() => setActiveChartTab("cpu")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "cpu" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}>CPU</button>
+                    <button onClick={() => setActiveChartTab("memory")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "memory" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}>Memory</button>
+                    <button onClick={() => setActiveChartTab("network")} className={`px-3 py-1.5 rounded-md transition-all ${activeChartTab === "network" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}>Network</button>
                   </div>
                 </div>
                 
@@ -122,7 +127,7 @@ export const DashboardRedesign = () => {
                           <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-slate-700" />
                       <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                       <YAxis stroke="#94a3b8" fontSize={12} />
                       <Tooltip />
@@ -133,13 +138,13 @@ export const DashboardRedesign = () => {
               </div>
 
               {/* AI Insights Panel */}
-              <div className="glass-card rounded-2xl p-5 border-white/80 shadow-sm bg-gradient-to-br from-white to-slate-50">
+              <div className="glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">AI Insights</h3>
-                    <p className="text-xs text-slate-500">Ollama Llama3 Analysis</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Insights</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Ollama Llama3 Analysis</p>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                     <BrainCircuit size={18} />
                   </div>
                 </div>
@@ -179,7 +184,7 @@ export const DashboardRedesign = () => {
                   </div>
                 </div>
                 
-                <button className="w-full mt-4 bg-slate-900 text-white rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 transition-all flex items-center justify-center gap-2">
+                <button className="w-full mt-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl py-2 text-xs font-semibold hover:bg-indigo-600 dark:hover:bg-indigo-500 dark:hover:text-white transition-all flex items-center justify-center gap-2">
                   View Full Report <ArrowRight size={12} />
                 </button>
               </div>
@@ -188,32 +193,32 @@ export const DashboardRedesign = () => {
             {/* 4. Alerts Panel & 5. Infrastructure Health */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Infrastructure Health */}
-              <div className="glass-card rounded-2xl p-5 border-white/80 shadow-sm">
+              <div className="glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Infrastructure Health</h3>
-                    <p className="text-xs text-slate-500">Active services and nodes.</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Infrastructure Health</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Active services and nodes.</p>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
+                  <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
                     <div className="h-2 w-2 rounded-full bg-emerald-500" /> All Systems Operational
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {serviceHealth.map((service: any, i: number) => (
-                    <div key={i} className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex justify-between items-center">
+                    <div key={i} className="bg-slate-50/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${service.status === 'DOWN' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                           {service.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-900">{service.name}</div>
-                          <div className="text-xs text-slate-500">Redis: {service.redis}</div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">{service.name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">Redis: {service.redis}</div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className={`text-xs font-bold ${service.status === 'UP' ? 'text-emerald-600' : 'text-rose-600'}`}>{service.status}</div>
-                        <div className="text-xs text-slate-400">Status</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-500">Status</div>
                       </div>
                     </div>
                   ))}
@@ -221,21 +226,21 @@ export const DashboardRedesign = () => {
               </div>
 
               {/* Recent Alerts */}
-              <div className="glass-card rounded-2xl p-5 border-white/80 shadow-sm">
+              <div className="glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Recent Alerts</h3>
-                    <p className="text-xs text-slate-500">Live system events.</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Alerts</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Live system events.</p>
                   </div>
-                  <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700">View All</button>
+                  <button className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">View All</button>
                 </div>
 
                 <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar">
                   {alerts.slice(0, 5).map((alert, i) => (
-                    <div key={i} className="bg-white border border-slate-100 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div key={i} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`h-2 w-2 rounded-full flex-shrink-0 ${alert.severity === 'critical' ? 'bg-rose-500' : alert.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                        <span className="font-medium text-slate-800 truncate">{alert.message}</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{alert.message}</span>
                       </div>
                       <div className="flex-shrink-0 text-slate-400 font-medium">
                         {new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -249,26 +254,27 @@ export const DashboardRedesign = () => {
             {/* 6. Activity Feed & 7. Monitoring Timeline (Mocked for visual completeness) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Activity Feed */}
-              <div className="lg:col-span-2 glass-card rounded-2xl p-5 border-white/80 shadow-sm">
+              <div className="lg:col-span-2 glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Live Activity Feed</h3>
-                    <p className="text-xs text-slate-500">Real-time system events.</p>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Live Activity Feed</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Real-time system events.</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-medium text-slate-500">Streaming</span>
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Streaming</span>
                   </div>
                 </div>
 
-                <div className="space-y-3 font-mono text-xs text-slate-600 max-h-[150px] overflow-y-auto custom-scrollbar">
+                <div className="space-y-3 font-mono text-xs text-slate-600 dark:text-slate-400 max-h-[150px] overflow-y-auto custom-scrollbar">
                   <AnimatePresence>
-                    {timeline.map((event) => (
+                    {timeline.slice(-10).map((event: any) => (
                       <motion.div 
                         key={event.id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2 }}
                         className="flex items-start gap-2"
                       >
                         <span className="text-slate-400">[{new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
@@ -287,19 +293,19 @@ export const DashboardRedesign = () => {
               </div>
 
               {/* Quick Actions */}
-              <div className="glass-card rounded-2xl p-5 border-white/80 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
+              <div className="glass-card rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center hover:bg-white hover:border-indigo-100 hover:text-indigo-600 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
+                  <button className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-center hover:bg-white dark:hover:bg-slate-700 hover:border-indigo-100 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
                     <FileSearch size={16} /> Logs
                   </button>
-                  <button className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center hover:bg-white hover:border-indigo-100 hover:text-indigo-600 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
+                  <button className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-center hover:bg-white dark:hover:bg-slate-700 hover:border-indigo-100 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
                     <BarChart3 size={16} /> Reports
                   </button>
-                  <button className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center hover:bg-white hover:border-indigo-100 hover:text-indigo-600 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
+                  <button className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 text-center hover:bg-white dark:hover:bg-slate-700 hover:border-indigo-100 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2">
                     <Settings size={16} /> Config
                   </button>
-                  <button className="bg-indigo-600 text-white rounded-xl p-3 text-center hover:bg-indigo-700 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2 shadow-sm shadow-indigo-100">
+                  <button className="bg-indigo-600 text-white rounded-xl p-3 text-center hover:bg-indigo-700 hover:shadow-sm transition-all text-xs font-semibold flex flex-col items-center gap-2 shadow-sm shadow-indigo-100 dark:shadow-none">
                     <Plus size={16} /> Add Node
                   </button>
                 </div>

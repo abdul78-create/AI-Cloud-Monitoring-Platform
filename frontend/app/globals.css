@@ -25,19 +25,8 @@
 }
 
 body {
-  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 antialiased transition-colors duration-500;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(217, 245, 255, 0.3), transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(245, 235, 255, 0.3), transparent 40%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 antialiased transition-colors duration-500;
   min-height: 100vh;
-}
-
-.dark body {
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.5), transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(15, 23, 42, 0.5), transparent 40%),
-    linear-gradient(135deg, #0f172a 0%, #020617 100%);
 }
 
 /* Glassmorphism System */

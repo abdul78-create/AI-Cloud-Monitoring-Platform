@@ -5,12 +5,11 @@ import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { Server, Globe, Shield, Zap, Search, Filter, HardDrive, Cpu } from "lucide-react";
 
 export default function InfrastructurePage() {
-  const { infrastructure, fetchDashboardData, initSocket } = useMonitoringStore();
+  const { infrastructure, fetchDashboardData } = useMonitoringStore();
 
   useEffect(() => {
     fetchDashboardData(true);
-    initSocket();
-  }, [fetchDashboardData, initSocket]);
+  }, [fetchDashboardData]);
 
   return (
     <div className="space-y-6">

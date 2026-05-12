@@ -40,7 +40,7 @@ export const CommandPalette = () => {
     { name: "Infrastructure Analytics", icon: Server, href: "/dashboard/infrastructure-analytics", category: "Navigation" },
     { name: "Deployment Analytics", icon: Box, href: "/dashboard/deployment", category: "Navigation" },
     { name: "Incidents", icon: Zap, href: "/dashboard/incidents", category: "Navigation" },
-    { name: "Settings", icon: Settings, href: "/settings", category: "Navigation" },
+    { name: "Settings", icon: Settings, href: "#", category: "Navigation" },
     
     // Quick Actions
     { name: "Restart Node", icon: RefreshCw, href: "#", category: "Quick Actions" },

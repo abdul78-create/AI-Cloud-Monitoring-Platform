@@ -9,13 +9,15 @@ import { AlertOctagon, X, AlertTriangle, Sparkles, Check } from "lucide-react";
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export const useSocket = () => {
-  const { metrics, infrastructure } = useMonitoringStore();
+  const addTimelineEvent = useMonitoringStore((state) => state.addTimelineEvent);
+  const setConnectionStatus = useMonitoringStore((state) => state.setConnectionStatus);
 
   useEffect(() => {
     const socket = io(SOCKET_URL);
 
     socket.on("connect", () => {
       console.log("[SOCKET] Connected to backend");
+      setConnectionStatus("connected");
     });
 
     socket.on("metrics", (data) => {
@@ -91,10 +93,54 @@ export const useSocket = () => {
 
     socket.on("disconnect", () => {
       console.log("[SOCKET] Disconnected from backend");
+      setConnectionStatus("disconnected");
     });
+
+    socket.on("reconnect_attempt", () => {
+      setConnectionStatus("reconnecting");
+    });
+
+    socket.on("reconnect", () => {
+      setConnectionStatus("connected");
+      addTimelineEvent({
+        type: "info",
+        message: "Socket connection restored. Auto-recovery active.",
+      });
+    });
+
+    // Simulate self-healing for demo purposes
+    const selfHealingInterval = setInterval(() => {
+      const { infrastructure } = useMonitoringStore.getState();
+      const downNodes = infrastructure.filter(n => n.status === 'down');
+      if (downNodes.length > 0) {
+        const randomNode = downNodes[Math.floor(Math.random() * downNodes.length)];
+        // Simulate recovery
+        useMonitoringStore.setState((state) => ({
+          infrastructure: state.infrastructure.map(n => 
+            n.service === randomNode.service ? { ...n, status: 'healthy' } : n
+          )
+        }));
+        
+        toast.custom((t) => (
+          <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 p-4 rounded-xl flex items-center gap-2">
+            <Check size={16} className="text-emerald-500" />
+            <div>
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Self-Healing Resolved</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">Node {randomNode.service} recovered successfully.</p>
+            </div>
+          </div>
+        ));
+
+        addTimelineEvent({
+          type: "info",
+          message: `Self-healing system automatically recovered node '${randomNode.service}'.`,
+        });
+      }
+    }, 30000);
 
     return () => {
       socket.disconnect();
+      clearInterval(selfHealingInterval);
     };
-  }, []);
+  }, [setConnectionStatus, addTimelineEvent]);
 };

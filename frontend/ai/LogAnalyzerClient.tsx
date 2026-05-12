@@ -3,12 +3,14 @@
 import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, AlertTriangle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 
 export const LogAnalyzerClient = () => {
   const [dragging, setDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const runLogAnalysis = useMonitoringStore((state) => state.runLogAnalysis);
   const aiResult = useMonitoringStore((state) => state.aiResult);
@@ -18,15 +20,20 @@ export const LogAnalyzerClient = () => {
 
   const processFile = async (file?: File) => {
     if (!file) return;
+    setSelectedFile(file);
+    setError(null);
     if (!/\.(log|txt)$/i.test(file.name)) {
+      setError("Only .log and .txt files are supported.");
       toast.error("Only .log and .txt files are supported.");
       return;
     }
     try {
       await runLogAnalysis(file);
       toast.success("AI analysis completed.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -51,12 +58,12 @@ export const LogAnalyzerClient = () => {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`rounded-xl border border-dashed p-6 text-center transition ${dragging ? "border-cyan-300 bg-cyan-400/10" : "border-white/20 bg-white/5"}`}
+          className={`rounded-xl border border-dashed p-6 text-center transition ${dragging ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50"}`}
         >
-          <UploadCloud className="mx-auto mb-3 text-cyan-300" />
-          <p className="mb-2 text-slate-200">Drag & drop log file here</p>
-          <p className="mb-4 text-xs text-slate-400">Supported: .log, .txt</p>
-          <button className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-900" onClick={() => inputRef.current?.click()}>
+          <UploadCloud className="mx-auto mb-3 text-cyan-500" />
+          <p className="mb-2 text-slate-700 dark:text-slate-200">Drag & drop log file here</p>
+          <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">Supported: .log, .txt</p>
+          <button className="rounded-lg bg-cyan-500 hover:bg-cyan-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => inputRef.current?.click()}>
             Browse File
           </button>
           <input ref={inputRef} type="file" accept=".log,.txt" onChange={handleInputChange} className="hidden" />
@@ -64,14 +71,36 @@ export const LogAnalyzerClient = () => {
 
         {(isUploading || isAnalyzing) && (
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-slate-300">{isUploading ? "Uploading logs..." : "Analyzing with AI model..."}</p>
-            <div className="h-2 rounded-full bg-white/10">
+            <p className="text-sm text-slate-600 dark:text-slate-300">{isUploading ? `Uploading logs (${uploadProgress}%)...` : "Analyzing with AI model..."}</p>
+            <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-indigo-400"
+                className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600"
                 initial={{ width: 0 }}
                 animate={{ width: `${isAnalyzing ? 100 : uploadProgress}%` }}
               />
             </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 rounded-xl flex justify-between items-center">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-sm">
+              <AlertTriangle size={16} />
+              <span>{error}</span>
+            </div>
+            <button 
+              onClick={() => processFile(selectedFile || undefined)} 
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
+            >
+              <RefreshCw size={12} /> Retry
+            </button>
+          </div>
+        )}
+
+        {!isUploading && !isAnalyzing && !error && selectedFile && (
+          <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 rounded-xl flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm">
+            <CheckCircle2 size={16} />
+            <span>Successfully processed {selectedFile.name}</span>
           </div>
         )}
       </GlassCard>

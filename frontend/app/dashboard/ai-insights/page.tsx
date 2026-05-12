@@ -28,8 +28,8 @@ export default function AIInsightsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-full px-3 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-2">
-          <Sparkles size={12} />
+        <div className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
+          <Sparkles size={12} className="text-indigo-600 dark:text-indigo-400" />
           <span>Powered by Ollama Llama3</span>
         </div>
         <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">AI Insights Center</h1>
@@ -40,7 +40,7 @@ export default function AIInsightsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Main AI Summary */}
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
+        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Predictive Resource Trend</h2>
@@ -75,7 +75,7 @@ export default function AIInsightsPage() {
         </div>
 
         {/* Health Score Pie */}
-        <div className="glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="glass-card rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Infrastructure Health</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">AI assessment of overall stability.</p>
@@ -115,7 +115,7 @@ export default function AIInsightsPage() {
         </div>
 
         {/* Recommendations List */}
-        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
+        <div className="lg:col-span-3 glass-card rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">AI Recommendations</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

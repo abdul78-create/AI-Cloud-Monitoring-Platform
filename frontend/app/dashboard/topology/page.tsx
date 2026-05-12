@@ -15,6 +15,7 @@ import "reactflow/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { Server, Database, Globe, Zap, Shield, Cpu, Search, Filter, X, Sparkles, Activity, Maximize2, Minimize2, ZoomIn, ZoomOut, RefreshCw, Network, Brain, FileSearch } from "lucide-react";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Custom Node Component (Flagship Redesign)
 const CustomNode = ({ data }: any) => {
@@ -43,13 +44,13 @@ const CustomNode = ({ data }: any) => {
           data.status === 'critical' ? 'bg-rose-500/10' : 
           data.status === 'warning' ? 'bg-amber-500/10' : 
           'bg-indigo-500/5'
-        } ${data.status === 'critical' ? 'animate-pulse' : ''}`} />
+        }`} />
       )}
       
       {/* Heartbeat dot */}
       {data.status !== 'offline' && (
         <div className="absolute top-3 right-3 flex h-2 w-2">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+          <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
             data.status === 'critical' ? 'bg-rose-500' : 
             data.status === 'warning' ? 'bg-amber-500' : 
             'bg-emerald-500'
@@ -82,7 +83,7 @@ const CustomNode = ({ data }: any) => {
       {data.status && (
         <div className="relative flex h-3 w-3 flex-shrink-0">
           {data.active && data.status !== 'offline' && (
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+            <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
               data.status === 'critical' ? 'bg-rose-400' : 
               data.status === 'warning' ? 'bg-amber-400' : 
               'bg-emerald-400'
@@ -121,14 +122,21 @@ export default function TopologyPage() {
     });
   };
 
+  const [throttledInfrastructure, setThrottledInfrastructure] = useState(infrastructure);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setThrottledInfrastructure(infrastructure);
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [infrastructure]);
+
   useEffect(() => {
     fetchDashboardData(true);
-    const interval = setInterval(() => fetchDashboardData(false), 5000);
-    return () => clearInterval(interval);
   }, [fetchDashboardData]);
 
   // Generate nodes and edges dynamically from infrastructure data
-  useMemo(() => {
+  useEffect(() => {
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
 
@@ -140,10 +148,10 @@ export default function TopologyPage() {
       position: { x: 500, y: 300 },
     });
 
-    infrastructure.forEach((node: any, index: number) => {
-      const isApi = node.tags?.includes("api") || node.service.includes("api");
-      const isDb = node.tags?.includes("db") || node.service.includes("db");
-      const isAi = node.tags?.includes("ai") || node.service.includes("ai");
+    throttledInfrastructure.forEach((node: any, index: number) => {
+      const isApi = node.tags?.includes("api") || node.service?.includes("api");
+      const isDb = node.tags?.includes("db") || node.service?.includes("db");
+      const isAi = node.tags?.includes("ai") || node.service?.includes("ai");
       
       let x = 800;
       let y = 100 + index * 120;
@@ -196,7 +204,7 @@ export default function TopologyPage() {
       // Premium Animated Connections (Edges)
       if (isDb) {
         // Connect APIs and AI to DBs
-        infrastructure.forEach((otherNode: any) => {
+        throttledInfrastructure.forEach((otherNode: any) => {
           if (otherNode.tags?.includes("api") || otherNode.tags?.includes("ai") || otherNode.service.includes("api")) {
             newEdges.push({
               id: `e-${otherNode.service}-${node.service}`,
@@ -233,7 +241,7 @@ export default function TopologyPage() {
 
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [infrastructure, searchQuery, setNodes, setEdges]);
+  }, [throttledInfrastructure, searchQuery, setNodes, setEdges]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -244,7 +252,8 @@ export default function TopologyPage() {
   };
 
   return (
-    <div className={`space-y-6 ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-950 p-6' : 'h-[calc(100vh-120px)]'}`}>
+    <ErrorBoundary>
+      <div className={`space-y-6 ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-950 p-6' : 'h-[calc(100vh-120px)]'}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -489,6 +498,7 @@ export default function TopologyPage() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

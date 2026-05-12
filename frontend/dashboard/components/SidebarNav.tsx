@@ -14,8 +14,8 @@ const items = [
   { name: "Infrastructure Analytics", icon: Server, href: "/dashboard/infrastructure-analytics" },
   { name: "Deployment Analytics", icon: Box, href: "/dashboard/deployment" },
   { name: "Incidents", icon: Zap, href: "/dashboard/incidents" },
-  { name: "Alerts", icon: AlertTriangle, href: "/dashboard/alerts" },
-  { name: "Settings", icon: Settings, href: "/settings" }
+  { name: "Alerts", icon: AlertTriangle, href: "/dashboard/incidents" },
+  { name: "Settings", icon: Settings, href: "#" }
 ];
 
 type SidebarProps = {
@@ -30,7 +30,7 @@ export const SidebarNav = ({ isOpen, onClose }: SidebarProps) => {
     <>
       {isOpen && <button aria-label="Close menu" className="fixed inset-0 z-20 bg-slate-900/20 backdrop-blur-sm lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed left-0 top-0 z-30 h-full w-72 border-r border-white/80 bg-white/70 p-5 backdrop-blur-xl transition-transform duration-300 lg:static lg:z-10 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-30 h-full w-72 border-r border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-5 backdrop-blur-xl transition-transform duration-300 lg:static lg:z-10 lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -39,10 +39,10 @@ export const SidebarNav = ({ isOpen, onClose }: SidebarProps) => {
             <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
               <Activity size={16} />
             </div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-800">Control Panel</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-800 dark:text-white">Control Panel</h2>
           </div>
-          <button className="rounded-lg border border-slate-200 p-1.5 lg:hidden" onClick={onClose}>
-            <X size={16} className="text-slate-600" />
+          <button className="rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 lg:hidden" onClick={onClose}>
+            <X size={16} className="text-slate-600 dark:text-slate-400" />
           </button>
         </div>
 
@@ -55,11 +55,11 @@ export const SidebarNav = ({ isOpen, onClose }: SidebarProps) => {
                   whileHover={{ x: 4 }}
                   className={`flex items-center gap-3 rounded-xl border px-3 py-1.5 text-sm transition-all duration-200 ${
                     active
-                      ? "border-slate-200/60 bg-white shadow-sm text-indigo-600 font-medium"
-                      : "border-transparent text-slate-600 hover:bg-white/50 hover:text-slate-900"
+                      ? "border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 font-medium"
+                      : "border-transparent text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
+                  <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-white dark:group-hover:bg-slate-700'}`}>
                     <item.icon size={14} />
                   </div>
                   <span>{item.name}</span>

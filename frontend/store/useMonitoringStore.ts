@@ -21,14 +21,16 @@ type MonitoringState = {
   socket: Socket | null;
   theme: "light" | "dark";
   timeline: any[];
+  connectionStatus: "connected" | "disconnected" | "reconnecting";
   
   fetchDashboardData: (initial?: boolean) => Promise<void>;
   fetchServiceHealth: () => Promise<void>;
   runLogAnalysis: (file: File) => Promise<void>;
   clearAiResult: () => void;
-  initSocket: () => void;
+
   setTheme: (theme: "light" | "dark") => void;
   addTimelineEvent: (event: any) => void;
+  setConnectionStatus: (status: "connected" | "disconnected" | "reconnecting") => void;
 };
 
 export const useMonitoringStore = create<MonitoringState>((set, get) => ({
@@ -46,6 +48,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   isAnalyzing: false,
   socket: null,
   theme: "dark", // Default to dark as requested
+  connectionStatus: "disconnected",
   timeline: [
     { id: "1", type: "info", message: "Service 'api-gateway' health check passed.", timestamp: new Date(Date.now() - 5000) },
     { id: "2", type: "ai", message: "Analyzing log stream for pattern anomaly in cluster-B...", timestamp: new Date(Date.now() - 15000) },
@@ -70,6 +73,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     }
   },
 
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
+
   fetchDashboardData: async (initial = false) => {
     set((state) => ({
       dashboardLoading: initial ? true : state.dashboardLoading,
@@ -86,11 +91,11 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
       ]);
 
       set({
-        metrics: unwrap<ApiMetricPoint[]>(metricsRes),
-        infrastructure: unwrap<ApiInfrastructure[]>(infraRes),
-        alerts: unwrap<ApiAlert[]>(alertsRes),
+        metrics: unwrap<ApiMetricPoint[]>(metricsRes) || [],
+        infrastructure: unwrap<ApiInfrastructure[]>(infraRes) || [],
+        alerts: unwrap<ApiAlert[]>(alertsRes) || [],
         analytics: analyticsRes,
-        serviceHealth: unwrap<any[]>(healthRes),
+        serviceHealth: unwrap<any[]>(healthRes) || [],
         dashboardLoading: false,
         dashboardRefreshing: false
       });
@@ -119,7 +124,6 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
       formData.append("logFile", file);
 
       const uploadRes = await api.post("/logs/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: (event) => {
           const total = event.total || 1;
           set({ uploadProgress: Math.round((event.loaded * 100) / total) });
@@ -147,43 +151,5 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
 
   clearAiResult: () => set({ aiResult: null }),
 
-  initSocket: () => {
-    const currentSocket = get().socket;
-    if (currentSocket) return; // Already initialized
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-    console.log(`[STORE] Connecting to socket at ${socketUrl}`);
-    const socket = io(socketUrl);
-
-    socket.on('metrics.received', (data) => {
-      console.log('[STORE] Socket: metrics.received', data);
-      // Update metrics in state
-      set((state) => ({
-        metrics: [...state.metrics, data.metrics].slice(-50) // Keep last 50
-      }));
-    });
-
-    socket.on('alert.triggered', (data) => {
-      console.log('[STORE] Socket: alert.triggered', data);
-      set((state) => ({
-        alerts: [data, ...state.alerts].slice(0, 20) // Keep latest 20
-      }));
-    });
-
-    socket.on('node.offline', (data) => {
-      console.log('[STORE] Socket: node.offline', data);
-      set((state) => ({
-        infrastructure: state.infrastructure.map(node => 
-          node.token === data.token ? { ...node, status: 'down' } : node
-        )
-      }));
-    });
-
-    socket.on('ai.analysis.completed', (data) => {
-      console.log('[STORE] Socket: ai.analysis.completed', data);
-      // Handle AI result update if needed
-    });
-
-    set({ socket });
-  }
 }));

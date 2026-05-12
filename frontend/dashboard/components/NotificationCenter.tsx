@@ -14,7 +14,7 @@ export const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps)
   const { alerts } = useMonitoringStore();
   
   // Use store alerts or fallback to mock notifications for rich variety
-  const notifications = alerts.length > 0 ? alerts.map(a => ({
+  const notifications = (alerts && alerts.length > 0) ? alerts.map(a => ({
     id: a.id,
     title: a.category ? a.category.toUpperCase() : "ALERT",
     message: a.message,
