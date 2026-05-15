@@ -26,7 +26,7 @@ export default function DeploymentAnalyticsPage() {
       className="space-y-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Header */}
       <div>
@@ -64,8 +64,8 @@ export default function DeploymentAnalyticsPage() {
                   }}
                   itemStyle={{ color: '#1e293b' }}
                 />
-                <Area type="monotone" dataKey="success" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorSuccess)" name="Successes" />
-                <Area type="monotone" dataKey="fail" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorFail)" name="Failures" />
+                <Area type="monotone" dataKey="success" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorSuccess)" name="Successes" isAnimationActive={false} />
+                <Area type="monotone" dataKey="fail" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorFail)" name="Failures" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

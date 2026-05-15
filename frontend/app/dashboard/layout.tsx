@@ -7,41 +7,36 @@ import { SidebarNav } from "@/dashboard/components/SidebarNav";
 import { TopNavbar } from "@/dashboard/components/TopNavbar";
 import { useSocket } from "@/hooks/useSocket";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { useLiveEngine } from "@/hooks/useLiveEngine";
 
-const AIAssistant = dynamic(() => import("@/dashboard/components/AIAssistant").then(mod => mod.AIAssistant), { ssr: false });
-const CommandPalette = dynamic(() => import("@/dashboard/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false });
+const AIAssistant = dynamic(
+  () => import("@/dashboard/components/AIAssistant").then(m => m.AIAssistant),
+  { ssr: false }
+);
+const CommandPalette = dynamic(
+  () => import("@/dashboard/components/CommandPalette").then(m => m.CommandPalette),
+  { ssr: false }
+);
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, setTheme } = useMonitoringStore();
+
   useSocket();
+  useLiveEngine(); // Mount the real-time simulation engine
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      setTheme("dark");
-    }
+    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+    setTheme(saved ?? "dark");
   }, [setTheme]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans relative overflow-hidden transition-colors duration-500">
-      {/* Background Orbs (Made subtle) */}
-      <div className="pointer-events-none fixed -left-20 -top-20 h-96 w-96 rounded-full bg-slate-400/5 dark:bg-indigo-500/5 opacity-50 blur-3xl" />
-      <div className="pointer-events-none fixed right-0 bottom-0 h-[500px] w-[500px] rounded-full bg-slate-400/5 dark:bg-violet-500/5 opacity-30 blur-3xl" />
-      
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-50 font-sans relative transition-colors duration-300">
       <div className="lg:flex">
         <SidebarNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex flex-col min-h-screen">
           <TopNavbar onMenuToggle={() => setMenuOpen(true)} />
-
-          <main className="space-y-6 px-4 py-6 sm:px-6 max-w-7xl mx-auto">
+          <main className="flex-1 px-4 py-6 sm:px-6 max-w-[1600px] mx-auto w-full space-y-6">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>

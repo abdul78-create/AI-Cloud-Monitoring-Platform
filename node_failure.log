@@ -1,0 +1,3 @@
+[2026-05-12T14:00:00Z] INFO: System normal.
+[2026-05-12T14:05:00Z] ERROR: Timeout on payment-service.
+[2026-05-12T14:06:00Z] CRITICAL: payment-service is down.

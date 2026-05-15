@@ -43,7 +43,7 @@ export const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps)
       case "critical": return "bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50";
       case "warning": return "bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50";
       case "success": return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50";
-      case "ai": return "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/50";
+      case "ai": return "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700";
       default: return "bg-blue-50 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50";
     }
   };
@@ -67,7 +67,7 @@ export const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps)
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   Notification Center
-                  <span className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-medium">
+                  <span className="text-xs bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-1.5 py-0.5 rounded-full font-medium">
                     {notifications.filter(n => !n.read).length}
                   </span>
                 </h3>
@@ -95,10 +95,10 @@ export const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps)
                   {notifications.map((notif) => (
                     <div 
                       key={notif.id} 
-                      className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative ${!notif.read ? 'bg-indigo-50/20 dark:bg-indigo-900/10' : ''}`}
+                      className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer relative ${!notif.read ? 'bg-slate-100/50 dark:bg-slate-800/50' : ''}`}
                     >
                       {!notif.read && (
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-slate-900 dark:bg-white" />
                       )}
                       <div className="flex gap-3">
                         <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-colors ${getBg(notif.severity)}`}>

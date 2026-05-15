@@ -5,7 +5,7 @@ const backendBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost
 
 export const api = axios.create({
   baseURL: backendBaseUrl,
-  timeout: 20000
+  timeout: 5000,
 });
 
 const cache = new Map<string, { expiresAt: number; value: unknown }>();
@@ -19,7 +19,7 @@ api.interceptors.response.use(
     const shouldRetry = !error.response || (error.response.status >= 500 && error.response.status <= 599);
     
     // Default to 3 retries if not specified, but only if shouldRetry is true
-    const retryCount = config && 'retry' in config ? (config.retry as number) : 3;
+    const retryCount = config && 'retry' in config ? (config.retry as number) : 1;
     
     if (!config || !shouldRetry || retryCount <= 0) {
       const status = error?.response?.status;

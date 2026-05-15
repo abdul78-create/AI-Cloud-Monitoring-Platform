@@ -74,7 +74,7 @@ export const LogAnalyzerClient = () => {
             <p className="text-sm text-slate-600 dark:text-slate-300">{isUploading ? `Uploading logs (${uploadProgress}%)...` : "Analyzing with AI model..."}</p>
             <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600"
+                className="h-full rounded-full bg-slate-900 dark:bg-white"
                 initial={{ width: 0 }}
                 animate={{ width: `${isAnalyzing ? 100 : uploadProgress}%` }}
               />
@@ -89,8 +89,8 @@ export const LogAnalyzerClient = () => {
               <span>{error}</span>
             </div>
             <button 
-              onClick={() => processFile(selectedFile || undefined)} 
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
+              onClick={() => processFile(selectedFile || undefined)}               
+              className="text-xs font-semibold text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1"
             >
               <RefreshCw size={12} /> Retry
             </button>

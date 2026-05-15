@@ -71,7 +71,7 @@ export const AIAssistant = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { metrics, alerts, infrastructure } = useMonitoringStore();
+  const { metrics, alerts, infrastructure, rootCause, playbook } = useMonitoringStore();
   const theme = useMonitoringStore((state) => state.theme);
 
   const scrollToBottom = () => {
@@ -139,21 +139,29 @@ export const AIAssistant = () => {
     const criticalAlerts = alerts.filter(a => a.severity === "critical");
     const downNodes = infrastructure.filter(i => i.status === "down");
 
-    let response = "I have analyzed your request. ";
+    let response = "I have analyzed your request. I am your AI Copilot, monitoring logs, metrics, and topology in real-time. System appears stable.";
 
     if (messageText.toLowerCase().includes("cpu")) {
-      response = `Your current CPU usage is at **${latestMetric?.cpu || 45}%**. This is within normal parameters. However, I noticed a spike in the last 10 minutes on **cluster-B**.
-\`\`\`
-$ top -bn1 | grep "Cpu(s)"
-Cpu(s): 45.2%us,  3.5%sy,  0.0%ni, 50.3%id
-\`\`\``;
-    } else if (messageText.toLowerCase().includes("analyze") || messageText.toLowerCase().includes("infrastructure")) {
-      response = `**Infrastructure Summary**: 
-- Active services: **${infrastructure.length || 12}**
-- Nodes down: **${downNodes.length || 0}**
-- Health score: **94%**
-
-I recommend checking the DB replica latency, as it's slightly elevated.`;
+      response = `Your current CPU usage is at **${latestMetric?.cpu?.toFixed(1) || 45}%**. This is within normal parameters.`;
+      if (latestMetric && latestMetric.cpu > 80) {
+        response = `CRITICAL: Your current CPU usage is spiked at **${latestMetric.cpu.toFixed(1)}%**! This is likely causing latency. ${rootCause || ""}`;
+      }
+    } else if (messageText.toLowerCase().includes("network") || messageText.toLowerCase().includes("traffic")) {
+      response = `Current network traffic is **${latestMetric?.networkTrafficMbps?.toFixed(1) || 200} Mbps**.`;
+      if (latestMetric && latestMetric.networkTrafficMbps > 500) {
+        response = `Traffic is exceptionally high (**${latestMetric.networkTrafficMbps.toFixed(1)} Mbps**). ${rootCause || "This might be due to a spike in user activity or a potential DDoS attack."}`;
+      }
+    } else if (messageText.toLowerCase().includes("root cause") || messageText.toLowerCase().includes("incident") || messageText.toLowerCase().includes("why")) {
+      if (rootCause) {
+        response = `The identified root cause is: **${rootCause}**.\n\nSuggested Playbook:\n${playbook?.map(a => `- ${a}`).join("\n")}`;
+      } else if (criticalAlerts.length > 0) {
+        response = `I see **${criticalAlerts.length}** critical alerts. The main issue seems to be: **${criticalAlerts[0].message}**.`;
+      }
+    } else if (messageText.toLowerCase().includes("infrastructure") || messageText.toLowerCase().includes("nodes")) {
+      response = `Infrastructure status: **${infrastructure.length}** services monitored. **${downNodes.length}** services are currently failing or critical.`;
+      if (downNodes.length > 0) {
+        response += ` Critical services: ${downNodes.map(n => `**${n.service}**`).join(", ")}.`;
+      }
     } else if (messageText.toLowerCase().includes("incidents") || messageText.toLowerCase().includes("alerts")) {
       response = `I found **${criticalAlerts.length || 2} critical alerts** in the last 24 hours. 
       
@@ -188,7 +196,7 @@ I recommend rotating API keys for the Gateway and investigating the Auth Service
       {/* Floating Button (World-Class Redesign) */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition-all cursor-pointer overflow-hidden"
+        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-md hover:shadow-lg transition-all cursor-pointer overflow-hidden"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -220,7 +228,7 @@ I recommend rotating API keys for the Gateway and investigating the Auth Service
             {/* Header */}
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex justify-between items-center transition-colors duration-500">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+                <div className="p-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-md">
                   <Brain size={20} />
                 </div>
                 <div>
@@ -244,13 +252,13 @@ I recommend rotating API keys for the Gateway and investigating the Auth Service
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`h-9 w-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300' : 'bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/50 dark:to-violet-900/50 text-indigo-600 dark:text-indigo-400'}`}>
+                    <div className={`h-9 w-9 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'}`}>
                       {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div className="space-y-1">
                       <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                         msg.role === 'user' 
-                          ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10' 
+                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-tr-none shadow-md' 
                           : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-tl-none shadow-sm transition-colors duration-500'
                       }`}>
                         {renderMessageContent(msg.content)}

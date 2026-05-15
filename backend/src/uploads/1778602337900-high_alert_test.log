@@ -1,0 +1,19 @@
+[2026-05-12 10:01:14] INFO  gateway-node-1        Service started successfully
+[2026-05-12 10:01:20] WARNING api-cluster-a      CPU usage exceeded 87%
+[2026-05-12 10:01:22] WARNING api-cluster-a      Memory usage exceeded 91%
+[2026-05-12 10:01:30] ERROR   auth-service       Multiple failed login attempts detected from IP 185.201.10.44
+[2026-05-12 10:01:42] CRITICAL payment-db        Database connection timeout after 30000ms
+[2026-05-12 10:01:51] ALERT   edge-firewall      Unauthorized SSH attempt blocked from IP 203.91.44.21
+[2026-05-12 10:02:03] WARNING cache-node-2       Redis memory fragmentation ratio high
+[2026-05-12 10:02:18] ERROR   load-balancer      Upstream service unavailable: api-cluster-b
+[2026-05-12 10:02:31] CRITICAL analytics-engine  Disk usage exceeded 96%
+[2026-05-12 10:02:45] ALERT   security-monitor   Suspicious lateral movement detected between nodes
+[2026-05-12 10:03:01] ERROR   ai-engine          Inference timeout during anomaly analysis
+[2026-05-12 10:03:14] WARNING websocket-gateway  Packet loss exceeded threshold
+[2026-05-12 10:03:27] CRITICAL infra-registry    Node heartbeat missing for cluster-node-4
+[2026-05-12 10:03:42] ALERT   ddos-protection    Traffic spike detected: 45000 requests/minute
+[2026-05-12 10:03:58] ERROR   payment-service    Transaction rollback due to deadlock
+[2026-05-12 10:04:12] WARNING notification-bus   Delayed queue processing detected
+[2026-05-12 10:04:28] CRITICAL ai-monitor        High anomaly score detected in production cluster
+[2026-05-12 10:04:44] INFO    recovery-agent     Auto-recovery triggered for cluster-node-4
+[2026-05-12 10:04:59] INFO    recovery-agent     Service restored successfully

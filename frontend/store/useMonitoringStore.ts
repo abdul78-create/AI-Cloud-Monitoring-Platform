@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { api, getWithCache, unwrap } from "@/services/api";
 import { ApiAlert, ApiAnalytics, ApiInfrastructure, ApiMetricPoint, LogAnalysisResult } from "@/types";
 import { io, Socket } from "socket.io-client";
+import { parseLogForSimulation } from "@/lib/logParser";
 
 type MonitoringState = {
   metrics: ApiMetricPoint[];
@@ -12,6 +13,8 @@ type MonitoringState = {
   analytics: ApiAnalytics | null;
   serviceHealth: any[];
   aiResult: LogAnalysisResult | null;
+  rootCause: string | null;
+  playbook: string[] | null;
   dashboardLoading: boolean;
   dashboardRefreshing: boolean;
   dashboardError: string | null;
@@ -22,6 +25,8 @@ type MonitoringState = {
   theme: "light" | "dark";
   timeline: any[];
   connectionStatus: "connected" | "disconnected" | "reconnecting";
+  isSimulating: boolean;
+  setIsSimulating: (val: boolean) => void;
   
   fetchDashboardData: (initial?: boolean) => Promise<void>;
   fetchServiceHealth: () => Promise<void>;
@@ -40,6 +45,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   analytics: null,
   serviceHealth: [],
   aiResult: null,
+  rootCause: null,
+  playbook: null,
   dashboardLoading: true,
   dashboardRefreshing: false,
   dashboardError: null,
@@ -47,6 +54,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   uploadProgress: 0,
   isAnalyzing: false,
   socket: null,
+  isSimulating: false,
   theme: "dark", // Default to dark as requested
   connectionStatus: "disconnected",
   timeline: [
@@ -74,8 +82,10 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   },
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
+  setIsSimulating: (val) => set({ isSimulating: val }),
 
   fetchDashboardData: async (initial = false) => {
+    if (get().isSimulating) return;
     set((state) => ({
       dashboardLoading: initial ? true : state.dashboardLoading,
       dashboardRefreshing: !initial,
@@ -136,9 +146,57 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
       const aiRes = await api.post("/ai/analyze", { logs: uploaded.content });
       const analysis = unwrap<LogAnalysisResult>(aiRes);
 
+      const simulation = parseLogForSimulation(uploaded.content);
+      
+      const socket = get().socket;
+      if (socket) {
+        socket.emit("simulation_event", simulation);
+      }
+      
+      set({ isSimulating: true });
+      setTimeout(() => {
+        set({ isSimulating: false });
+      }, 45000);
+      
+      const currentMetrics = get().metrics;
+      const currentInfra = get().infrastructure;
+      const currentAlerts = get().alerts;
+      const currentTimeline = get().timeline;
+      
+      const updatedMetrics = (simulation.metrics && Object.keys(simulation.metrics).length > 0) ? [
+        ...currentMetrics,
+        { ...currentMetrics[currentMetrics.length - 1], ...simulation.metrics, timestamp: new Date(Date.now() - 2000).toISOString() },
+        { ...currentMetrics[currentMetrics.length - 1], ...simulation.metrics, timestamp: new Date(Date.now() - 1000).toISOString() },
+        { ...currentMetrics[currentMetrics.length - 1], ...simulation.metrics, timestamp: new Date().toISOString() }
+      ] as any : currentMetrics;
+      
+      const updatedInfra = currentInfra.map(node => {
+        const update = simulation.infraUpdates?.find(u => u.service === node.service);
+        return update ? { ...node, ...update } : node;
+      });
+      
+      const updatedAlerts = simulation.isRecovery ? currentAlerts.filter(a => a.severity !== "critical") : (simulation.newAlerts ? [...simulation.newAlerts, ...currentAlerts] : currentAlerts);
+      
+      const updatedTimeline = simulation.timelineEvents ? [...currentTimeline, ...simulation.timelineEvents] : currentTimeline;
+
+      const currentAnalytics = get().analytics;
+      const updatedAnalytics = currentAnalytics ? {
+        ...currentAnalytics,
+        avgCpu: simulation.metrics?.cpu || currentAnalytics.avgCpu,
+        avgMemory: simulation.metrics?.memory || currentAnalytics.avgMemory,
+        peakTrafficMbps: Math.max(currentAnalytics.peakTrafficMbps, simulation.metrics?.networkTrafficMbps || 0)
+      } : currentAnalytics;
+
       set({
         aiResult: analysis,
-        isAnalyzing: false
+        isAnalyzing: false,
+        metrics: updatedMetrics,
+        infrastructure: updatedInfra,
+        alerts: updatedAlerts,
+        timeline: updatedTimeline,
+        analytics: updatedAnalytics,
+        rootCause: simulation.rootCause || null,
+        playbook: simulation.playbook || null
       });
     } catch (error) {
       set({

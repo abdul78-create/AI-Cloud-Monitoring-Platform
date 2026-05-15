@@ -1,0 +1,5 @@
+[2026-05-12 11:01:14] WARNING api-cluster-a CPU usage reached 89%
+[2026-05-12 11:01:18] WARNING api-cluster-a CPU usage reached 92%
+[2026-05-12 11:01:21] CRITICAL api-cluster-a CPU usage reached 98%
+[2026-05-12 11:01:25] ALERT auto-scaling-trigger Scaling policy activated
+[2026-05-12 11:01:31] INFO recovery-agent New node cluster-node-5 added

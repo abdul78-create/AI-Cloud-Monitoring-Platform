@@ -8,6 +8,7 @@ import { apiRoutes } from "./routes";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { HttpError } from "./utils/httpError";
+import { startTelemetryBroadcaster } from "./services/telemetryBroadcaster";
 
 const app = express();
 const server = http.createServer(app);
@@ -38,7 +39,8 @@ app.use(requestLogger);
 app.get("/", (_req, res) => {
   res.json({
     success: true,
-    message: "AI Cloud Monitoring backend is running."
+    message: "AI Cloud Monitoring backend is running.",
+    telemetry: "live — streaming at 3s intervals"
   });
 });
 
@@ -50,18 +52,28 @@ app.use((_req, _res, next) => {
 
 app.use(errorHandler);
 
-// Socket.io connection
+// Socket.io — agent events
 io.on("connection", (socket) => {
   console.log(`[SOCKET] Client connected: ${socket.id}`);
   
+  socket.on("simulation_event", (data) => {
+    console.log(`[SOCKET] Simulation event received`);
+    io.emit("simulation_update", data);
+  });
+
   socket.on("disconnect", () => {
     console.log(`[SOCKET] Client disconnected: ${socket.id}`);
   });
 });
+
+// Start real-time telemetry broadcaster
+startTelemetryBroadcaster(io);
 
 // Export io instance to use in services
 export { io };
 
 server.listen(env.port, () => {
   console.log(`Backend listening on http://localhost:${env.port}`);
+  console.log(`[TELEMETRY] Live streaming active — socket.io ready`);
 });
+

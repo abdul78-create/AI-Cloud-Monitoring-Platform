@@ -13,29 +13,30 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Server, Database, Globe, Zap, Shield, Cpu, Search, Filter, X, Sparkles, Activity, Maximize2, Minimize2, ZoomIn, ZoomOut, RefreshCw, Network, Brain, FileSearch } from "lucide-react";
+import { Server, Database, Globe, Zap, Shield, Cpu, Search, Filter, X, Sparkles, Activity, Maximize2, Minimize2, RefreshCw, Network, Brain, FileSearch } from "lucide-react";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { useLiveEngineStore } from "@/hooks/useLiveEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Custom Node Component (Flagship Redesign)
-const CustomNode = ({ data }: any) => {
+const CustomNode = React.memo(function CustomNode({ data }: any) {
   const Icon = data.icon || Server;
   const isDark = true; // Assuming dark mode for the premium feel requested in the prompt
   
   return (
     <motion.div 
-      whileHover={{ y: -5, scale: 1.05 }}
-      initial={{ opacity: 0, scale: 0.9 }}
+      whileHover={{ y: -2, scale: 1.02 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={`px-5 py-4 rounded-2xl border backdrop-blur-xl flex items-center gap-4 min-w-[220px] transition-all duration-300 ${
         data.status === 'critical' 
-          ? 'border-rose-500/50 bg-rose-500/5 dark:bg-rose-950/30 shadow-[0_0_10px_rgba(239,68,68,0.05)]' 
+          ? 'border-rose-500/50 bg-rose-500/5 dark:bg-rose-950/30 shadow-none' 
           : data.status === 'warning'
-            ? 'border-amber-500/50 bg-amber-500/5 dark:bg-amber-950/30 shadow-[0_0_10px_rgba(245,158,11,0.05)]'
+            ? 'border-amber-500/50 bg-amber-500/5 dark:bg-amber-950/30 shadow-none'
             : data.status === 'offline'
-              ? 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shadow-sm'
-              : 'border-white/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-premium dark:shadow-[0_0_10px_rgba(79,70,229,0.03)]'
+              ? 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shadow-none'
+              : 'border-white/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-sm'
       }`}
     >
       {/* Status Shimmer/Glow & Heartbeat */}
@@ -68,7 +69,7 @@ const CustomNode = ({ data }: any) => {
         data.status === 'critical' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/10' : 
         data.status === 'warning' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/10' :
         data.status === 'offline' ? 'bg-slate-400 dark:bg-slate-600 text-white' : 
-        'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/10'
+        'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
       }`}>
         <Icon size={20} />
       </div>
@@ -99,7 +100,7 @@ const CustomNode = ({ data }: any) => {
       )}
     </motion.div>
   );
-};
+});;
 
 const nodeTypes = {
   custom: CustomNode,
@@ -108,11 +109,26 @@ const nodeTypes = {
 export default function TopologyPage() {
   const { infrastructure, fetchDashboardData } = useMonitoringStore();
   const addTimelineEvent = useMonitoringStore((state) => state.addTimelineEvent);
+  const { incidents } = useLiveEngineStore();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Derive live statuses from incidents
+  const liveStatuses = useMemo(() => {
+    const map: Record<string, string> = {};
+    incidents.slice(0, 20).forEach(inc => {
+      if (inc.type === 'critical') map[inc.service] = 'critical';
+      else if (inc.type === 'warning' || inc.type === 'security') {
+        if (map[inc.service] !== 'critical') map[inc.service] = 'warning';
+      } else if (inc.type === 'recovery') {
+        map[inc.service] = 'online';
+      }
+    });
+    return map;
+  }, [incidents]);
 
   const handleAction = (actionName: string) => {
     if (!selectedNode) return;
@@ -146,6 +162,49 @@ export default function TopologyPage() {
       type: "custom",
       data: { label: "Edge Gateway", icon: Zap, type: "Core Infrastructure", status: "online", active: true },
       position: { x: 500, y: 300 },
+    });
+
+    // Add Cloud Provider Nodes
+    newNodes.push({
+      id: "aws",
+      type: "custom",
+      data: { label: "AWS us-east-1", icon: Globe, type: "Cloud Provider", status: "online", active: true },
+      position: { x: 100, y: 100 },
+    });
+    newNodes.push({
+      id: "gcp",
+      type: "custom",
+      data: { label: "GCP asia-east1", icon: Globe, type: "Cloud Provider", status: "online", active: true },
+      position: { x: 100, y: 300 },
+    });
+    newNodes.push({
+      id: "azure",
+      type: "custom",
+      data: { label: "Azure europe-west", icon: Globe, type: "Cloud Provider", status: "online", active: true },
+      position: { x: 100, y: 500 },
+    });
+
+    // Add edges from cloud providers to gateway
+    newEdges.push({
+      id: "aws-to-gateway",
+      source: "aws",
+      target: "gateway",
+      animated: true,
+      style: { stroke: "#94a3b8", strokeWidth: 2 },
+    });
+    newEdges.push({
+      id: "gcp-to-gateway",
+      source: "gcp",
+      target: "gateway",
+      animated: true,
+      style: { stroke: "#94a3b8", strokeWidth: 2 },
+    });
+    newEdges.push({
+      id: "azure-to-gateway",
+      source: "azure",
+      target: "gateway",
+      animated: true,
+      style: { stroke: "#94a3b8", strokeWidth: 2 },
     });
 
     throttledInfrastructure.forEach((node: any, index: number) => {
@@ -187,6 +246,10 @@ export default function TopologyPage() {
         return;
       }
 
+      // Merge live incident status
+      const liveStatus = liveStatuses[node.service];
+      const resolvedStatus = liveStatus || node.status;
+
       newNodes.push({
         id: node.service,
         type: "custom",
@@ -194,8 +257,8 @@ export default function TopologyPage() {
           label: node.service, 
           icon: icon, 
           type: type, 
-          status: node.status,
-          active: node.status === 'online',
+          status: resolvedStatus,
+          active: resolvedStatus === 'online',
           fullData: node
         },
         position: { x, y },
@@ -211,8 +274,8 @@ export default function TopologyPage() {
               source: otherNode.service,
               target: node.service,
               animated: true,
-              style: { stroke: node.status === 'online' ? "#4f46e5" : "#94a3b8", strokeWidth: 2, opacity: 0.6 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: "#4f46e5" },
+              style: { stroke: node.status === 'online' ? "#0f172a" : "#94a3b8", strokeWidth: 2, opacity: 0.6 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: "#0f172a" },
             });
           }
         });
@@ -223,8 +286,8 @@ export default function TopologyPage() {
           source: "gateway",
           target: node.service,
           animated: true,
-          style: { stroke: "#4f46e5", strokeWidth: 2, strokeDasharray: "5,5" },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#4f46e5" },
+          style: { stroke: "#0f172a", strokeWidth: 2, strokeDasharray: "5,5" },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#0f172a" },
         });
       } else {
         // Connect Frontends to Gateway
@@ -233,15 +296,15 @@ export default function TopologyPage() {
           source: node.service,
           target: "gateway",
           animated: true,
-          style: { stroke: "#10b981", strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
+          style: { stroke: "#0f172a", strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#0f172a" },
         });
       }
     });
 
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [throttledInfrastructure, searchQuery, setNodes, setEdges]);
+  }, [throttledInfrastructure, searchQuery, liveStatuses, setNodes, setEdges]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -288,7 +351,7 @@ export default function TopologyPage() {
       </div>
 
       {/* Graph Area */}
-      <div className={`relative w-full rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-500 ${isFullscreen ? 'h-[calc(100%-80px)]' : 'h-[calc(100%-80px)]'}`}>
+      <div className={`relative w-full rounded-3xl border border-slate-100 dark:border-slate-800 shadow-premium overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 ${isFullscreen ? 'h-[calc(100%-80px)]' : 'h-[calc(100%-80px)]'}`}>
         {/* Infrastructure Zones (Visual Separation) */}
         <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-30">
           <div className="absolute left-0 top-0 bottom-0 w-[250px] border-r border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center">
@@ -326,7 +389,7 @@ export default function TopologyPage() {
         </ReactFlow>
 
         {/* Floating Legends */}
-        <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-xs space-y-2 z-10 transition-colors duration-500">
+        <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-xs space-y-2 z-10 transition-colors duration-200">
           <div className="font-bold text-slate-700 dark:text-slate-200 mb-1">Node Status</div>
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
             <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Healthy
@@ -346,19 +409,19 @@ export default function TopologyPage() {
         <AnimatePresence>
           {selectedNode && selectedNode.data.fullData && (
             <motion.div
-              initial={{ x: 400, opacity: 0 }}
+              initial={{ x: 200, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 400, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-4 right-4 bottom-4 w-[380px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-premium p-6 z-10 flex flex-col justify-between transition-colors duration-500"
+              exit={{ x: 200, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute top-4 right-4 bottom-4 w-[380px] max-w-[calc(100vw-32px)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-lg p-6 z-10 flex flex-col justify-between transition-colors duration-200"
             >
               <div className="overflow-y-auto pr-2 custom-scrollbar">
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-xl text-white ${
-                      selectedNode.data.status === 'critical' ? 'bg-rose-500' :
-                      selectedNode.data.status === 'warning' ? 'bg-amber-500' :
-                      'bg-indigo-600'
+                    <div className={`p-3 rounded-xl ${
+                      selectedNode.data.status === 'critical' ? 'bg-rose-500 text-white' :
+                      selectedNode.data.status === 'warning' ? 'bg-amber-500 text-white' :
+                      'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
                     }`}>
                       {React.createElement(selectedNode.data.icon || Server, { size: 20 })}
                     </div>
@@ -438,12 +501,12 @@ export default function TopologyPage() {
                   </div>
 
                   {/* AI Insights Section */}
-                  <div className="bg-indigo-50 dark:bg-indigo-950/30 rounded-xl p-4 border border-indigo-100 dark:border-indigo-900/50">
-                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 mb-2">
+                  <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-4 border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-2">
                       <Sparkles size={14} />
                       <span className="text-xs font-bold uppercase">AI Analysis</span>
                     </div>
-                    <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                       This node is operating within normal parameters. No anomalies detected in the last 24 hours. Traffic patterns suggest a 10% increase in load expected in the next hour.
                     </p>
                   </div>
@@ -473,7 +536,7 @@ export default function TopologyPage() {
                   </button>
                   <button 
                     onClick={() => handleAction("Scale Service")}
-                    className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm"
+                    className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
                   >
                     <Zap size={14} /> Scale
                   </button>

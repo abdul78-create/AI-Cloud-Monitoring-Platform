@@ -21,7 +21,7 @@ export default function InfrastructureAnalyticsPage() {
       className="space-y-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -59,8 +59,8 @@ export default function InfrastructureAnalyticsPage() {
                   }}
                   itemStyle={{ color: '#1e293b' }}
                 />
-                <Bar dataKey="cpu" fill="#4f46e5" radius={[4, 4, 0, 0]} name="CPU %" />
-                <Bar dataKey="mem" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Memory %" />
+                <Bar dataKey="cpu" fill="#4f46e5" radius={[4, 4, 0, 0]} name="CPU %" isAnimationActive={false} />
+                <Bar dataKey="mem" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Memory %" isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -115,7 +115,7 @@ export default function InfrastructureAnalyticsPage() {
                   }}
                   itemStyle={{ color: '#1e293b' }}
                 />
-                <Line type="monotone" dataKey="net" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="net" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

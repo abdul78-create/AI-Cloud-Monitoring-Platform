@@ -1,0 +1,3 @@
+[2026-05-12T14:00:00Z] INFO: System normal.
+[2026-05-12T14:05:00Z] WARNING: High traffic detected from multiple IPs.
+[2026-05-12T14:06:00Z] CRITICAL: DDoS attack suspected! Requests are high.
