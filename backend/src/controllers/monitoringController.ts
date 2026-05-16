@@ -8,7 +8,13 @@ const redisPort = process.env.REDIS_PORT || '6379';
 
 // Initialize Redis Client for Pub/Sub
 const redisClient = createClient({ url: `redis://${redisHost}:${redisPort}` });
-redisClient.connect().catch(console.error);
+redisClient.connect().catch((err) => {
+  if (err?.message?.includes('ECONNREFUSED')) {
+    // console.warn('[Redis] Connection refused (fallback mode active)');
+  } else {
+    console.error(err);
+  }
+});
 
 // Initialize BullMQ Queue for Logs
 const logQueue = new Queue('logs', {
@@ -19,7 +25,9 @@ const logQueue = new Queue('logs', {
 });
 
 logQueue.on('error', (err) => {
-  console.warn('[BullMQ] Queue error:', err.message);
+  if (!err.message.includes('ECONNREFUSED')) {
+    console.warn('[BullMQ] Queue error:', err.message);
+  }
 });
 
 const INFRASTRUCTURE_REGISTRY_URL = process.env.INFRASTRUCTURE_REGISTRY_URL || 'http://localhost:5002';
