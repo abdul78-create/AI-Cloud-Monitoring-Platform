@@ -3,11 +3,10 @@ import { createClient } from 'redis';
 import { Queue } from 'bullmq';
 import axios from 'axios';
 
-const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisPort = process.env.REDIS_PORT || '6379';
-
 // Initialize Redis Client for Pub/Sub
-const redisClient = createClient({ url: `redis://${redisHost}:${redisPort}` });
+const redisClient = createClient({ 
+  url: process.env.REDIS_URL || 'redis://localhost:6379' 
+});
 redisClient.connect().catch((err) => {
   if (err?.message?.includes('ECONNREFUSED')) {
     // console.warn('[Redis] Connection refused (fallback mode active)');
@@ -19,8 +18,7 @@ redisClient.connect().catch((err) => {
 // Initialize BullMQ Queue for Logs
 const logQueue = new Queue('logs', {
   connection: {
-    host: redisHost,
-    port: parseInt(redisPort)
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
   }
 });
 
