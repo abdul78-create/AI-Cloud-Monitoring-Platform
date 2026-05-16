@@ -26,22 +26,38 @@ async function getClient(): Promise<RedisClientType | null> {
 
   const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
   try {
-    const c = createClient({ url: redisUrl }) as RedisClientType;
+    const c = createClient({ 
+      url: redisUrl,
+      socket: {
+        reconnectStrategy: (retries) => {
+          const delay = Math.min(retries * 500, 5000);
+          console.log(`[REDIS-STREAMS] Reconnecting in ${delay}ms...`);
+          return delay;
+        }
+      }
+    }) as RedisClientType;
+
     c.on("error", (err) => {
-      if (!String(err).includes("ECONNREFUSED")) {
-        console.error("[REDIS] Error:", err.message);
+      if (!String(err).includes("ECONNREFUSED") && !String(err).includes("Socket closed")) {
+        console.error("[REDIS-STREAMS] Error:", err.message);
       }
       isConnected = false;
     });
+
     c.on("connect", () => {
       isConnected = true;
-      console.log("[REDIS] Connected to Redis — streams active");
+      console.log("[REDIS-STREAMS] Connected to Redis — streams active");
     });
+
+    c.on("reconnecting", () => {
+      console.log("[REDIS-STREAMS] Attempting to reconnect...");
+    });
+
     await c.connect();
     client = c;
     return c;
   } catch (err: any) {
-    console.warn("[REDIS] Redis unavailable — running in memory-only mode");
+    console.warn("[REDIS-STREAMS] Redis unavailable — running in memory-only mode");
     return null;
   }
 }

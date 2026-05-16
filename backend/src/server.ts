@@ -10,6 +10,17 @@ import { errorHandler } from "./middleware/errorHandler";
 import { HttpError } from "./utils/httpError";
 import { startTelemetryBroadcaster } from "./services/telemetryBroadcaster";
 
+// Global process safeguards to prevent crash on Redis socket errors or other unhandled issues
+process.on("uncaughtException", (err) => {
+  console.error("[CRITICAL] Uncaught Exception:", err.message);
+  // Keep process alive for Railway
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[CRITICAL] Unhandled Rejection:", reason);
+  // Keep process alive for Railway
+});
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {

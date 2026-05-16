@@ -5,27 +5,41 @@ import axios from 'axios';
 
 // Initialize Redis Client for Pub/Sub
 const redisClient = createClient({ 
-  url: process.env.REDIS_URL || 'redis://localhost:6379' 
-});
-redisClient.connect().catch((err) => {
-  if (err?.message?.includes('ECONNREFUSED')) {
-    // console.warn('[Redis] Connection refused (fallback mode active)');
-  } else {
-    console.error(err);
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
+  socket: {
+    reconnectStrategy: (retries) => {
+      const delay = Math.min(retries * 500, 5000);
+      console.log(`[REDIS] Reconnecting in ${delay}ms... (Attempt ${retries})`);
+      return delay;
+    }
   }
+});
+
+redisClient.on('error', (err) => {
+  if (err?.message?.includes('ECONNREFUSED') || err?.message?.includes('Socket closed')) {
+    console.warn('[REDIS] Connection error or socket closed (reconnecting...)');
+  } else {
+    console.error('[REDIS] Global error:', err);
+  }
+});
+
+redisClient.on('reconnecting', () => console.log('[REDIS] Reconnecting to server...'));
+redisClient.on('end', () => console.warn('[REDIS] Connection ended.'));
+
+redisClient.connect().catch(() => {
+  console.warn('[REDIS] Initial connection failed — running in offline mode');
 });
 
 // Initialize BullMQ Queue for Logs
 const logQueue = new Queue('logs', {
   connection: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    maxRetriesPerRequest: null, // Required for BullMQ to handle reconnects properly
   }
 });
 
 logQueue.on('error', (err) => {
-  if (!err.message.includes('ECONNREFUSED')) {
-    console.warn('[BullMQ] Queue error:', err.message);
-  }
+  console.warn('[BULLMQ] Queue error encountered:', err.message);
 });
 
 const INFRASTRUCTURE_REGISTRY_URL = process.env.INFRASTRUCTURE_REGISTRY_URL || 'http://localhost:5002';
