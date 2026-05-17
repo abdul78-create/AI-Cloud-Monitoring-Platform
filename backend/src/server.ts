@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import http from "http";
+import rateLimit from "express-rate-limit";
 import { Server } from "socket.io";
 import { env } from "./config/env";
 import { apiRoutes } from "./routes";
@@ -31,6 +32,18 @@ const io = new Server(server, {
   }
 });
 
+// Configure rate limiting to protect API endpoints in production
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // limit each IP to 300 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes."
+  }
+});
+
 app.use(
   cors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -55,7 +68,8 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-app.use("/api", apiRoutes);
+app.use("/api", apiLimiter, apiRoutes);
+
 
 app.use((_req: Request, _res: Response, next: NextFunction) => {
   next(new HttpError(404, "Route not found."));
