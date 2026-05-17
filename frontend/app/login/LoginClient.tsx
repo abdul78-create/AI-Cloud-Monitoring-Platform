@@ -4,11 +4,11 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Shield, Zap, BarChart3, Globe, Cpu } from "lucide-react";
+import { Activity, Shield, Zap, BarChart3, Globe, Cpu, CheckCircle } from "lucide-react";
 
-// Google icon SVG
+/* ── Google Brand Icon ── */
 const GoogleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -17,15 +17,17 @@ const GoogleIcon = () => (
 );
 
 const FEATURES = [
-  { icon: Activity, label: "Live Telemetry", desc: "Real-time streaming metrics" },
-  { icon: Shield, label: "Threat Detection", desc: "AI-powered security monitoring" },
-  { icon: Zap, label: "Auto-Remediation", desc: "Intelligent incident response" },
-  { icon: BarChart3, label: "Analytics", desc: "Deep infrastructure insights" },
+  { icon: Activity,  label: "Live Telemetry",     desc: "Real-time streaming metrics from all nodes" },
+  { icon: Shield,    label: "Threat Detection",    desc: "AI-powered security & anomaly monitoring" },
+  { icon: Zap,       label: "Auto-Remediation",    desc: "Intelligent incident response automation" },
+  { icon: BarChart3, label: "Deep Analytics",      desc: "Historical trends and predictive insights" },
 ];
 
-const TICKER_ITEMS = [
-  "CPU: 54.2% ↑", "Memory: 62.1%", "RPS: 4,312", "Latency: 42ms ✓",
-  "Incidents: 2 active", "Nodes: 12 healthy", "Threats: 0 critical",
+const TRUST_ITEMS = [
+  "SOC 2 Type II",
+  "99.97% uptime SLA",
+  "GDPR compliant",
+  "3 global regions",
 ];
 
 export default function LoginClient() {
@@ -34,18 +36,10 @@ export default function LoginClient() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [loading, setLoading] = useState(false);
-  const [tickerIdx, setTickerIdx] = useState(0);
 
-  // Already authenticated → redirect
   useEffect(() => {
     if (status === "authenticated") router.replace(callbackUrl);
   }, [status, router, callbackUrl]);
-
-  // Ticker animation
-  useEffect(() => {
-    const id = setInterval(() => setTickerIdx(i => (i + 1) % TICKER_ITEMS.length), 2000);
-    return () => clearInterval(id);
-  }, []);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -53,163 +47,267 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] flex overflow-hidden">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex flex-col justify-between w-[52%] p-12 relative overflow-hidden bg-[#060a10] border-r border-white/[0.04]">
-        {/* Grid background */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+    <div
+      className="min-h-screen flex overflow-hidden"
+      style={{ background: "var(--surface-1)" }}
+    >
+      {/* ════════════════════════════════════════
+          Left panel — branding (desktop only)
+      ════════════════════════════════════════ */}
+      <div
+        className="hidden lg:flex flex-col justify-between w-[52%] p-12 relative overflow-hidden"
+        style={{
+          background: "var(--surface-0)",
+          borderRight: "1px solid var(--border-default)",
+        }}
+      >
+        {/* Subtle dot grid */}
+        <div
+          className="absolute inset-0 opacity-[0.4]"
+          style={{
+            backgroundImage: "radial-gradient(var(--border-default) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-        {/* Gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-violet-600/8 blur-3xl" />
+        {/* Gradient accent — top right */}
+        <div
+          className="absolute -top-32 -right-32 h-64 w-64 rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(26,115,232,0.08) 0%, transparent 70%)",
+          }}
+        />
 
-        {/* Brand */}
+        {/* ── Brand lockup ── */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30">
-            <Activity size={20} className="text-indigo-400" />
+          <div
+            className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--brand-600)" }}
+          >
+            <Activity size={18} className="text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white tracking-wide">AI Cloud Monitor</h2>
-            <p className="text-[10px] text-slate-500">Enterprise Observability</p>
+            <h2 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+              AI Cloud Monitor
+            </h2>
+            <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              Enterprise Observability Platform
+            </p>
           </div>
         </div>
 
-        {/* Hero text */}
-        <div className="relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        {/* ── Hero text + features ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10"
+        >
+          {/* Live status chip */}
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-6"
+            style={{
+              background: "var(--color-success-bg)",
+              border: "1px solid var(--color-success-border)",
+              color: "var(--color-success)",
+            }}
           >
-            <div className="inline-flex items-center gap-2 bg-emerald-400/10 border border-emerald-400/20 rounded-full px-3 py-1 text-xs text-emerald-400 font-medium mb-6">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live platform — 12 nodes online
-            </div>
-            <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-              Real-time AI<br/>
-              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                Observability
-              </span>
-            </h1>
-            <p className="text-slate-400 text-base leading-relaxed max-w-md">
-              Monitor your entire infrastructure in real-time with AI-powered anomaly detection, predictive scaling, and automated remediation.
-            </p>
-          </motion.div>
-
-          {/* Live ticker */}
-          <div className="mt-8 flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Cpu size={12} />
-              <span>Live metrics</span>
-            </div>
-            <div className="h-px flex-1 bg-white/[0.05]" />
-            <motion.span
-              key={tickerIdx}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="text-xs font-mono text-indigo-400"
-            >
-              {TICKER_ITEMS[tickerIdx]}
-            </motion.span>
+            <span className="live-dot" />
+            Platform online · 12 nodes healthy
           </div>
+
+          <h1
+            className="text-4xl font-bold leading-tight mb-4"
+            style={{ color: "var(--text-primary)", letterSpacing: "-0.02em" }}
+          >
+            Real-time AI<br />
+            <span style={{ color: "var(--brand-600)" }}>Observability</span>
+          </h1>
+
+          <p className="text-base leading-relaxed max-w-md" style={{ color: "var(--text-secondary)" }}>
+            Monitor your entire infrastructure with AI-powered anomaly detection,
+            predictive scaling, and automated incident remediation.
+          </p>
 
           {/* Feature grid */}
           <div className="mt-8 grid grid-cols-2 gap-3">
             {FEATURES.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex-shrink-0">
-                  <Icon size={13} className="text-indigo-400" />
+              <div
+                key={label}
+                className="flex items-start gap-3 p-4 rounded-xl transition-all"
+                style={{
+                  background: "var(--surface-1)",
+                  border: "1px solid var(--border-default)",
+                }}
+              >
+                <div
+                  className="p-1.5 rounded-lg flex-shrink-0"
+                  style={{ background: "var(--brand-50)", color: "var(--brand-600)" }}
+                >
+                  <Icon size={13} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white">{label}</p>
-                  <p className="text-[11px] text-slate-500">{desc}</p>
+                  <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {label}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                    {desc}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Footer */}
-        <div className="relative z-10 flex items-center gap-4 text-[11px] text-slate-600">
-          <Globe size={12} />
-          <span>3 regions active</span>
-          <span>·</span>
-          <span>99.97% uptime SLA</span>
-          <span>·</span>
-          <span>SOC 2 Type II</span>
+        {/* ── Footer trust row ── */}
+        <div className="relative z-10 flex items-center gap-5 flex-wrap">
+          {TRUST_ITEMS.map(item => (
+            <div key={item} className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              <CheckCircle size={11} style={{ color: "var(--color-success)" }} />
+              {item}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Right panel — login form */}
+      {/* ════════════════════════════════════════
+          Right panel — login card
+      ════════════════════════════════════════ */}
       <div className="flex-1 flex items-center justify-center p-8">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="w-full max-w-sm"
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+          className="w-full max-w-[360px]"
         >
           {/* Mobile brand */}
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="p-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30">
-              <Activity size={18} className="text-indigo-400" />
-            </div>
-            <span className="font-bold text-white">AI Cloud Monitor</span>
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Sign in</h2>
-            <p className="text-sm text-slate-400">
-              Access your observability dashboard
-            </p>
-          </div>
-
-          {/* Google Sign In */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={loading || status === "loading"}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-900 font-semibold text-sm py-3.5 px-5 rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-black/20 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <div className="h-4 w-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            {loading ? "Redirecting to Google..." : "Continue with Google"}
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-xs text-slate-600">or</span>
-            <div className="flex-1 h-px bg-white/[0.06]" />
-          </div>
-
-          {/* Demo access note */}
-          <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-indigo-400 mb-1">Demo Mode Available</p>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              The dashboard runs fully in demo mode without a Google account.
-              Sign in unlocks persistent sessions and user avatars.
-            </p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="mt-3 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2"
+          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
+            <div
+              className="h-8 w-8 rounded-lg flex items-center justify-center"
+              style={{ background: "var(--brand-600)" }}
             >
-              Continue without signing in →
+              <Activity size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+              AI Cloud Monitor
+            </span>
+          </div>
+
+          {/* Sign-in card */}
+          <div
+            className="card p-8"
+            style={{ boxShadow: "var(--shadow-2)" }}
+          >
+            {/* Header */}
+            <div className="mb-6">
+              <h2
+                className="text-xl font-bold mb-1"
+                style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}
+              >
+                Sign in
+              </h2>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Access your observability dashboard
+              </p>
+            </div>
+
+            {/* Google sign-in button */}
+            <button
+              id="google-signin-btn"
+              onClick={handleGoogleSignIn}
+              disabled={loading || status === "loading"}
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-150"
+              style={{
+                background: "var(--surface-0)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-primary)",
+                boxShadow: "var(--shadow-1)",
+              }}
+              onMouseEnter={e => {
+                if (!loading) {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-2)";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-1)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
+              }}
+            >
+              {loading ? (
+                <div
+                  className="h-4 w-4 rounded-full border-2"
+                  style={{
+                    borderColor: "var(--border-strong)",
+                    borderTopColor: "var(--brand-600)",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+              ) : (
+                <GoogleIcon />
+              )}
+              {loading ? "Redirecting to Google…" : "Continue with Google"}
             </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
+              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>or</span>
+              <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
+            </div>
+
+            {/* Demo access */}
+            <div
+              className="rounded-lg p-4"
+              style={{
+                background: "var(--brand-50)",
+                border: "1px solid var(--color-info-border)",
+              }}
+            >
+              <p className="text-xs font-semibold mb-1" style={{ color: "var(--brand-600)" }}>
+                Demo Mode Available
+              </p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                Explore the full dashboard without a Google account.
+                Sign in unlocks persistent sessions and team features.
+              </p>
+              <button
+                id="demo-access-btn"
+                onClick={() => router.push("/dashboard")}
+                className="mt-3 text-xs font-semibold transition-colors"
+                style={{ color: "var(--brand-600)" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--brand-700)")}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--brand-600)")}
+              >
+                Continue as guest →
+              </button>
+            </div>
           </div>
 
           {/* Terms */}
-          <p className="text-center text-[11px] text-slate-600 mt-6">
+          <p className="text-center text-[11px] mt-5" style={{ color: "var(--text-tertiary)" }}>
             By signing in, you agree to our{" "}
-            <span className="text-slate-400 cursor-pointer hover:text-white transition-colors">Terms of Service</span>{" "}
+            <button className="underline underline-offset-2 transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)")}
+            >
+              Terms of Service
+            </button>{" "}
             and{" "}
-            <span className="text-slate-400 cursor-pointer hover:text-white transition-colors">Privacy Policy</span>
+            <button className="underline underline-offset-2 transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)")}
+            >
+              Privacy Policy
+            </button>
           </p>
         </motion.div>
       </div>
+
+      {/* Spin keyframe */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
