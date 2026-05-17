@@ -1,0 +1,13 @@
+node_modules
+.next
+backend/node_modules
+frontend/node_modules
+frontend/.next
+services/*/node_modules
+.git
+.vscode
+*.log
+*.png
+*.jpg
+*.webp
+*.gif

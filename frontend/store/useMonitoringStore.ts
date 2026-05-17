@@ -36,7 +36,11 @@ type MonitoringState = {
   setTheme: (theme: "light" | "dark") => void;
   addTimelineEvent: (event: any) => void;
   setConnectionStatus: (status: "connected" | "disconnected" | "reconnecting") => void;
+  isAuthModalOpen: boolean;
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
 };
+
 
 export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   metrics: [],
@@ -83,6 +87,10 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setIsSimulating: (val) => set({ isSimulating: val }),
+  isAuthModalOpen: false,
+  openAuthModal: () => set({ isAuthModalOpen: true }),
+  closeAuthModal: () => set({ isAuthModalOpen: false }),
+
 
   fetchDashboardData: async (initial = false) => {
     if (get().isSimulating) return;

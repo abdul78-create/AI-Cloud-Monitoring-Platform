@@ -223,12 +223,26 @@ export const TopNavbar = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
                   {session?.user?.name?.charAt(0) ?? "G"}
                 </div>
               )}
-              <span
-                className="hidden sm:block text-[13px] font-medium max-w-[100px] truncate"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {session?.user?.name ?? "Guest"}
-              </span>
+              <div className="flex flex-col items-start leading-none">
+                <span
+                  className="hidden sm:block text-[12px] font-semibold max-w-[100px] truncate"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {session?.user?.name ?? "Guest"}
+                </span>
+                {(session?.user as any)?.isGuest && (
+                  <span
+                    className="text-[9px] font-extrabold uppercase mt-0.5 tracking-wider px-1 py-0.5 rounded"
+                    style={{
+                      background: "rgba(242, 153, 74, 0.12)",
+                      color: "#f2994a",
+                      border: "1px solid rgba(242, 153, 74, 0.2)",
+                    }}
+                  >
+                    Guest Session
+                  </span>
+                )}
+              </div>
               <ChevronDown
                 size={12}
                 style={{

@@ -8,10 +8,13 @@ import {
 } from "lucide-react";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 type Tab = "account" | "notifications" | "thresholds" | "apikeys" | "team";
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const openAuthModal = useMonitoringStore(s => s.openAuthModal);
   const { theme, setTheme } = useMonitoringStore();
   const [activeTab, setActiveTab] = useState<Tab>("account");
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -43,49 +46,67 @@ export default function SettingsPage() {
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("Developer");
 
+  const checkGuestMode = (action: () => void) => {
+    if ((session?.user as any)?.isGuest) {
+      openAuthModal();
+    } else {
+      action();
+    }
+  };
+
   const handleSave = () => {
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-      toast.success("Settings saved successfully!");
-    }, 1200);
+    checkGuestMode(() => {
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        toast.success("Settings saved successfully!");
+      }, 1200);
+    });
   };
 
   const handleGenerateKey = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeyName.trim()) return;
-    const randomHex = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-    const newKey = {
-      id: Date.now().toString(),
-      name: newKeyName,
-      key: `am_live_sk_${randomHex.substring(0, 4)}...${randomHex.substring(12)}`,
-      created: new Date().toISOString().split("T")[0]
-    };
-    setApiKeys([...apiKeys, newKey]);
-    setNewKeyName("");
-    toast.success("API key generated successfully!");
+    checkGuestMode(() => {
+      if (!newKeyName.trim()) return;
+      const randomHex = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+      const newKey = {
+        id: Date.now().toString(),
+        name: newKeyName,
+        key: `am_live_sk_${randomHex.substring(0, 4)}...${randomHex.substring(12)}`,
+        created: new Date().toISOString().split("T")[0]
+      };
+      setApiKeys([...apiKeys, newKey]);
+      setNewKeyName("");
+      toast.success("API key generated successfully!");
+    });
   };
 
   const handleDeleteKey = (id: string) => {
-    setApiKeys(apiKeys.filter(k => k.id !== id));
-    toast.success("API key revoked");
+    checkGuestMode(() => {
+      setApiKeys(apiKeys.filter(k => k.id !== id));
+      toast.success("API key revoked");
+    });
   };
 
   const handleAddTeam = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberEmail.trim()) return;
-    if (team.some(t => t.email.toLowerCase() === newMemberEmail.toLowerCase())) {
-      toast.error("User already in team");
-      return;
-    }
-    setTeam([...team, { email: newMemberEmail, role: newMemberRole, status: "Active" }]);
-    setNewMemberEmail("");
-    toast.success("Invitation sent successfully!");
+    checkGuestMode(() => {
+      if (!newMemberEmail.trim()) return;
+      if (team.some(t => t.email.toLowerCase() === newMemberEmail.toLowerCase())) {
+        toast.error("User already in team");
+        return;
+      }
+      setTeam([...team, { email: newMemberEmail, role: newMemberRole, status: "Active" }]);
+      setNewMemberEmail("");
+      toast.success("Invitation sent successfully!");
+    });
   };
 
   const handleRemoveTeam = (email: string) => {
-    setTeam(team.filter(t => t.email !== email));
-    toast.success("Team member removed");
+    checkGuestMode(() => {
+      setTeam(team.filter(t => t.email !== email));
+      toast.success("Team member removed");
+    });
   };
 
   return (

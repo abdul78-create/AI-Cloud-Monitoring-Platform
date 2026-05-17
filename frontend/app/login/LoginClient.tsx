@@ -46,6 +46,12 @@ export default function LoginClient() {
     await signIn("google", { callbackUrl });
   };
 
+  const handleGuestSignIn = async () => {
+    setLoading(true);
+    await signIn("credentials", { username: "guest", callbackUrl });
+  };
+
+
   return (
     <div
       className="min-h-screen flex overflow-hidden"
@@ -273,13 +279,18 @@ export default function LoginClient() {
               </p>
               <button
                 id="demo-access-btn"
-                onClick={() => router.push("/dashboard")}
-                className="mt-3 text-xs font-semibold transition-colors"
+                onClick={handleGuestSignIn}
+                disabled={loading}
+                className="mt-3 text-xs font-semibold transition-colors disabled:opacity-50"
                 style={{ color: "var(--brand-600)" }}
-                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--brand-700)")}
-                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "var(--brand-600)")}
+                onMouseEnter={e => {
+                  if (!loading) (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-700)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-600)";
+                }}
               >
-                Continue as guest →
+                {loading ? "Accessing guest mode..." : "Continue as guest →"}
               </button>
             </div>
           </div>

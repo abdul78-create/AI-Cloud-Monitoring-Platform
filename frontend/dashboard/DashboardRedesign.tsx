@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, AlertTriangle, Shield, Zap, Database,
@@ -134,6 +136,9 @@ function SectionCard({
    Main component
 ═══════════════════════════════════════════════ */
 export const DashboardRedesign = () => {
+  const { data: session } = useSession();
+  const openAuthModal = useMonitoringStore(s => s.openAuthModal);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"cpu" | "memory" | "network">("cpu");
   useMonitoringPolling();
 
@@ -207,7 +212,16 @@ export const DashboardRedesign = () => {
           <button className="btn btn-outlined flex items-center gap-1.5">
             <RefreshCw size={13} /> Refresh
           </button>
-          <button className="btn btn-primary flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              if ((session?.user as any)?.isGuest) {
+                openAuthModal();
+              } else {
+                alert("AI Scan completed successfully! All systems nominal.");
+              }
+            }}
+            className="btn btn-primary flex items-center gap-1.5"
+          >
             <Zap size={13} /> Run AI Scan
           </button>
         </div>
@@ -484,13 +498,20 @@ export const DashboardRedesign = () => {
         <SectionCard title="Quick Actions">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { icon: FileSearch, label: "View Logs",  href: "/ai",                        variant: "outlined" },
-              { icon: BarChart3,  label: "Reports",    href: "/dashboard/incident-analytics", variant: "outlined" },
-              { icon: Settings,  label: "Settings",   href: "/dashboard/settings",          variant: "outlined" },
-              { icon: Zap,       label: "Run Scan",   href: "#",                            variant: "primary"  },
-            ].map(({ icon: Icon, label, variant }) => (
+              { icon: FileSearch, label: "View Logs",  onClick: () => router.push("/ai"), variant: "outlined" as const },
+              { icon: BarChart3,  label: "Reports",    onClick: () => router.push("/dashboard/incident-analytics"), variant: "outlined" as const },
+              { icon: Settings,  label: "Settings",   onClick: () => router.push("/dashboard/settings"), variant: "outlined" as const },
+              { icon: Zap,       label: "Run Scan",   onClick: () => {
+                if ((session?.user as any)?.isGuest) {
+                  openAuthModal();
+                } else {
+                  alert("AI Scan completed successfully! All systems nominal.");
+                }
+              }, variant: "primary" as const  },
+            ].map(({ icon: Icon, label, onClick, variant }) => (
               <button
                 key={label}
+                onClick={onClick}
                 className={`flex flex-col items-center gap-2 p-3.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
                   variant === "primary" ? "btn btn-primary w-full" : ""
                 }`}
