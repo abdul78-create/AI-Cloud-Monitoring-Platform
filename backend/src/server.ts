@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import http from "http";
@@ -33,7 +33,7 @@ const io = new Server(server, {
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin) return callback(null, true);
       const allowed = env.clientOrigin.split(",").map((item) => item.trim());
       if (allowed.includes(origin)) return callback(null, true);
@@ -47,7 +47,7 @@ app.use(helmet());
 app.use(express.json({ limit: "2mb" }));
 app.use(requestLogger);
 
-app.get("/", (_req, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: "AI Cloud Monitoring backend is running.",
@@ -57,7 +57,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api", apiRoutes);
 
-app.use((_req, _res, next) => {
+app.use((_req: Request, _res: Response, next: NextFunction) => {
   next(new HttpError(404, "Route not found."));
 });
 
