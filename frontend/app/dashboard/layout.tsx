@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SidebarNav } from "@/dashboard/components/SidebarNav";
 import { TopNavbar } from "@/dashboard/components/TopNavbar";
@@ -18,9 +20,16 @@ const CommandPalette = dynamic(
   { ssr: false }
 );
 
+const pageVariants = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.15, ease: "easeOut" } },
+  exit: { opacity: 0, y: -4, transition: { duration: 0.12, ease: "easeIn" } },
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, setTheme } = useMonitoringStore();
+  const pathname = usePathname();
 
   useSocket();
   useLiveEngine(); // Mount the real-time simulation engine
@@ -31,14 +40,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [setTheme]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-50 font-sans relative transition-colors duration-300">
+    <div
+      style={{ background: "var(--surface-1)", color: "var(--text-primary)" }}
+      className="min-h-screen font-sans relative transition-colors duration-300"
+    >
       <div className="lg:flex">
         <SidebarNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="min-w-0 flex-1 flex flex-col min-h-screen">
           <TopNavbar onMenuToggle={() => setMenuOpen(true)} />
           <main className="flex-1 px-4 py-6 sm:px-6 max-w-[1600px] mx-auto w-full space-y-6">
             <ErrorBoundary>
-              {children}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="w-full h-full"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </ErrorBoundary>
           </main>
         </div>
@@ -48,3 +71,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+
