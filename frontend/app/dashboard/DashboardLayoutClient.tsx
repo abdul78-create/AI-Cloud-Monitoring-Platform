@@ -31,7 +31,7 @@ const pageVariants = {
 export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const { theme, setTheme } = useMonitoringStore();
+  const { theme, setTheme, connectionStatus } = useMonitoringStore();
   const pathname = usePathname();
 
   useSocket();
@@ -71,6 +71,59 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
         <SidebarNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="min-w-0 flex-1 flex flex-col min-h-screen">
           <TopNavbar onMenuToggle={() => setMenuOpen(true)} />
+
+          {/* Offline / Reconnecting Alert Banner */}
+          <AnimatePresence>
+            {connectionStatus !== "connected" && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
+                className="overflow-hidden w-full sticky top-[56px] z-10"
+                style={{
+                  background: connectionStatus === "reconnecting" ? "var(--color-warning-bg)" : "var(--color-error-bg)",
+                  borderBottom: `1px solid ${connectionStatus === "reconnecting" ? "var(--color-warning-border)" : "var(--color-error-border)"}`,
+                }}
+              >
+                <div className="max-w-[1600px] mx-auto px-4 py-2 sm:px-6 flex items-center justify-between gap-3 text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 relative">
+                      <span
+                        className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                        style={{ background: connectionStatus === "reconnecting" ? "var(--color-warning)" : "var(--color-error)" }}
+                      />
+                      <span
+                        className="relative inline-flex rounded-full h-2 w-2"
+                        style={{ background: connectionStatus === "reconnecting" ? "var(--color-warning)" : "var(--color-error)" }}
+                      />
+                    </span>
+                    <span style={{ color: connectionStatus === "reconnecting" ? "var(--color-warning)" : "var(--color-error)" }}>
+                      {connectionStatus === "reconnecting"
+                        ? "Establishing telemetry link… live updates are paused until connection is restored."
+                        : "Telemetry link disconnected. Verify connection or check if the backend monitoring service is online."}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const socket = useMonitoringStore.getState().socket;
+                      if (socket) {
+                        socket.connect();
+                      }
+                    }}
+                    className="btn btn-outlined py-0.5 px-2 text-[10px] font-bold"
+                    style={{
+                      color: connectionStatus === "reconnecting" ? "var(--color-warning)" : "var(--color-error)",
+                      borderColor: connectionStatus === "reconnecting" ? "var(--color-warning-border)" : "var(--color-error-border)",
+                    }}
+                  >
+                    Reconnect Now
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <main className="flex-1 px-4 py-6 sm:px-6 max-w-[1600px] mx-auto w-full space-y-6">
             <ErrorBoundary>
               <AnimatePresence mode="wait">
