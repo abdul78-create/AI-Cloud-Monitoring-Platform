@@ -4,32 +4,29 @@ import Google from "next-auth/providers/google";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   pages: {
     signIn: "/login",
     error: "/login",
   },
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
     async session({ session, token }) {
-      // Attach token sub as user id
+      // Safely attach Google user ID to session
       if (session.user && token.sub) {
         (session.user as any).id = token.sub;
       }
       return session;
     },
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
-        token.sub = profile.sub || undefined;
-      }
-      return token;
-    },
   },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+  // NextAuth v5 uses AUTH_SECRET (preferred) with NEXTAUTH_SECRET as fallback
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: true,
+  // Enable detailed auth logs in development
+  debug: process.env.NODE_ENV === "development",
 });
