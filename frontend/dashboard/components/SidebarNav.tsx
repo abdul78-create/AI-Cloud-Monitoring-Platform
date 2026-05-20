@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity, AlertTriangle, BarChart3, BrainCircuit, FileSearch,
   LayoutDashboard, Server, Settings, Shield, Zap, Box, Network, X,
-  ChevronRight
+  ChevronRight, Plus, BookOpen, PlusCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
@@ -29,6 +29,7 @@ const items: NavItem[] = [
   { name: "Logs Analyzer",          section: "Intelligence",    icon: FileSearch,      href: "/ai" },
 
   /* ── Infrastructure ── */
+  { name: "Connect Infrastructure", section: "Infrastructure",  icon: PlusCircle,      href: "/dashboard/connect",                  badge: "NEW",  badgeVariant: "live" },
   { name: "Topology",               section: "Infrastructure",  icon: Network,         href: "/dashboard/topology" },
   { name: "Infra Analytics",        section: "Infrastructure",  icon: Server,          href: "/dashboard/infrastructure-analytics" },
   { name: "Deployment Analytics",   section: "Infrastructure",  icon: Box,             href: "/dashboard/deployment" },
@@ -43,6 +44,7 @@ const items: NavItem[] = [
 
   /* ── Settings ── */
   { name: "Settings",               section: "Settings",        icon: Settings,        href: "/dashboard/settings" },
+  { name: "Documentation",          section: "Settings",        icon: BookOpen,        href: "/docs" },
 ];
 
 const SECTIONS = ["Overview", "Intelligence", "Infrastructure", "Incidents", "Security", "Settings"];
