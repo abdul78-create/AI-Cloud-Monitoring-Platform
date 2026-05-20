@@ -24,7 +24,7 @@ export default function AgentDocsPage() {
         <div>curl -sSL https://cloudai.monitor/install.sh | bash</div>
         <br/>
         <div><span className="text-green-400"># 2. Configure with your API key</span></div>
-        <div>sudo cloudai-agent configure --api-key="your_api_key_here"</div>
+        <div>sudo cloudai-agent configure --api-key=&quot;your_api_key_here&quot;</div>
         <br/>
         <div><span className="text-green-400"># 3. Start the service</span></div>
         <div>sudo systemctl enable --now cloudai-agent</div>
@@ -44,7 +44,7 @@ export default function AgentDocsPage() {
         <div>  -v /var/run/docker.sock:/var/run/docker.sock:ro \</div>
         <div>  -v /proc:/host/proc:ro \</div>
         <div>  -v /sys:/host/sys:ro \</div>
-        <div>  -e API_KEY="your_api_key_here" \</div>
+        <div>  -e API_KEY=&quot;your_api_key_here&quot; \</div>
         <div>  cloudai/agent:latest</div>
       </div>
 
@@ -57,7 +57,7 @@ export default function AgentDocsPage() {
         <li>
           Create a secret for your API key:
           <div className="bg-slate-900 rounded-lg p-3 font-mono text-xs text-slate-300 not-prose my-3 overflow-x-auto">
-            kubectl create secret generic cloudai-secrets --from-literal=api-key="your_api_key_here" -n monitoring
+            kubectl create secret generic cloudai-secrets --from-literal=api-key=&quot;your_api_key_here&quot; -n monitoring
           </div>
         </li>
         <li>
@@ -103,7 +103,7 @@ export default function AgentDocsPage() {
             <tr>
               <td className="px-4 py-3 font-mono text-xs text-pink-500">CLOUDAI_TAGS</td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Comma-separated custom tags</td>
-              <td className="px-4 py-3 font-mono text-xs text-slate-500">""</td>
+              <td className="px-4 py-3 font-mono text-xs text-slate-500">&quot;&quot;</td>
             </tr>
           </tbody>
         </table>

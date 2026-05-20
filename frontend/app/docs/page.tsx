@@ -51,7 +51,7 @@ export default function DocsOverviewPage() {
         <div>curl -sSL https://cloudai.monitor/install.sh | bash</div>
         <br/>
         <div><span className="text-green-400"># Start the agent with your API key</span></div>
-        <div>cloudai-agent start --api-key="YOUR_API_KEY"</div>
+        <div>cloudai-agent start --api-key=&quot;YOUR_API_KEY&quot;</div>
       </div>
 
       <h3>3. View your Dashboard</h3>

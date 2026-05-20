@@ -36,7 +36,7 @@ export default function ApiDocsPage() {
         <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Query Parameters</h4>
           <ul className="text-sm space-y-2 mb-4 text-slate-600 dark:text-slate-400">
-            <li><code className="text-pink-500">type</code> (optional): Hint for the incident pattern (e.g. "memory-leak").</li>
+            <li><code className="text-pink-500">type</code> (optional): Hint for the incident pattern (e.g. &quot;memory-leak&quot;).</li>
             <li><code className="text-pink-500">service</code> (optional): The affected service name.</li>
           </ul>
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Response</h4>

@@ -1018,7 +1018,7 @@ function EnterpriseFeatures() {
             Everything your team needs
           </h2>
           <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">
-            Production-grade observability built for the teams that can't afford downtime.
+            Production-grade observability built for the teams that can&apos;t afford downtime.
           </p>
         </motion.div>
 
