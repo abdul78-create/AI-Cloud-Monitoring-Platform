@@ -2,38 +2,85 @@
 
 import { useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
-import { UploadCloud, AlertTriangle, RefreshCw, CheckCircle2, FileSearch, ArrowRight, BrainCircuit, Sparkles, Shield } from "lucide-react";
-import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { motion, AnimatePresence } from "framer-motion";
+import { UploadCloud, AlertTriangle, RefreshCw, CheckCircle2, FileSearch, ArrowRight, BrainCircuit, Activity, Server, FileText, Cpu } from "lucide-react";
+
+interface AIAnalysisData {
+  summary: string;
+  severity: "low" | "medium" | "high" | "critical";
+  affectedServices: string[];
+  anomalies: string[];
+  recommendations: string[];
+  telemetryCorrelation: string[];
+  stats: {
+    linesParsed: number;
+    errors: number;
+    warnings: number;
+  };
+}
+
+const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 export const LogAnalyzerClient = () => {
   const [dragging, setDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiResult, setAiResult] = useState<AIAnalysisData | null>(null);
+  
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const runLogAnalysis = useMonitoringStore((state) => state.runLogAnalysis);
-  const aiResult = useMonitoringStore((state) => state.aiResult);
-  const isUploading = useMonitoringStore((state) => state.isUploading);
-  const uploadProgress = useMonitoringStore((state) => state.uploadProgress);
-  const isAnalyzing = useMonitoringStore((state) => state.isAnalyzing);
 
   const processFile = async (file?: File) => {
     if (!file) return;
-    setSelectedFile(file);
-    setError(null);
+    
     if (!/\.(log|txt)$/i.test(file.name)) {
-      setError("Only .log and .txt files are supported.");
-      toast.error("Only .log and .txt files are supported.");
-      return;
-    }
-    try {
-      await runLogAnalysis(file);
-      toast.success("AI analysis completed.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
+      const msg = "Only .log and .txt files are supported.";
       setError(msg);
       toast.error(msg);
+      return;
+    }
+    
+    setSelectedFile(file);
+    setError(null);
+    setAiResult(null);
+    setIsUploading(true);
+    setIsAnalyzing(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("logFile", file);
+
+      // Simulate network upload progress
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      setIsUploading(false);
+      setIsAnalyzing(true);
+
+      const response = await fetch(`${API}/api/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || "Failed to analyze log file.");
+      }
+
+      // Simulate AI analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setAiResult(json.data);
+      toast.success("AI Diagnostics completed successfully.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Network error during upload.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsUploading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -47,23 +94,32 @@ export const LogAnalyzerClient = () => {
     await processFile(event.dataTransfer.files?.[0]);
   };
 
+  // Severity configurations for badges
+  const severityConfig = {
+    low: { color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950", border: "border-emerald-200 dark:border-emerald-800", label: "Low Priority" },
+    medium: { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950", border: "border-blue-200 dark:border-blue-800", label: "Medium Priority" },
+    high: { color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950", border: "border-amber-200 dark:border-amber-800", label: "High Priority" },
+    critical: { color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950", border: "border-red-200 dark:border-red-800", label: "Critical Incident" }
+  };
+
   return (
-    <div className="space-y-5">
-      {/* ── Header ── */}
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div>
-        <h1 className="heading-page flex items-center gap-2">
-          <FileSearch style={{ color: "var(--text-secondary)" }} size={20} />
-          AI Logs Analyzer
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+          <BrainCircuit className="text-blue-600 dark:text-blue-500" size={24} />
+          AI Log Intelligence
         </h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-          Upload high-volume diagnostic log files for instant AI anomaly detection and telemetry correlations
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Upload application logs for instant AI-driven anomaly detection and telemetry correlations.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        {/* ── Left Side: Upload Control ── */}
-        <div className="card p-5 space-y-4">
-          <h3 className="heading-section">Diagnostic Source</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Side: Upload Control */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Diagnostic Source</h3>
+          
           <div
             onDragOver={(event) => {
               event.preventDefault();
@@ -71,172 +127,227 @@ export const LogAnalyzerClient = () => {
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className="rounded-lg border border-dashed p-6 text-center transition-colors cursor-pointer flex flex-col items-center justify-center"
-            style={{
-              borderColor: dragging ? "var(--brand-600)" : "var(--border-default)",
-              background: dragging ? "var(--brand-50)" : "var(--surface-1)",
-            }}
+            className={`rounded-lg border-2 border-dashed p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+              dragging ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 bg-slate-50 dark:bg-slate-800/50"
+            }`}
             onClick={() => inputRef.current?.click()}
           >
-            <UploadCloud className="mb-2" style={{ color: "var(--brand-600)" }} size={24} />
-            <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-primary)" }}>
+            <UploadCloud className={`mb-3 ${dragging ? "text-blue-600" : "text-slate-400"}`} size={32} />
+            <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
               Drag & drop log file here
             </p>
-            <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Supported formats: .log, .txt (Max 10MB)
             </p>
-            <button className="btn btn-outlined py-1.5 px-3 text-xs font-semibold mt-4">
-              Browse File
+            <button className="mt-5 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+              Browse Files
             </button>
             <input ref={inputRef} type="file" accept=".log,.txt" onChange={handleInputChange} className="hidden" />
           </div>
 
-          {/* Progress loader */}
-          {(isUploading || isAnalyzing) && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                <RefreshCw size={12} className="animate-spin" />
-                {isUploading ? `Uploading telemetry (${uploadProgress}%)…` : "Running intelligent LLM scan…"}
-              </p>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: "var(--brand-600)" }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${isAnalyzing ? 100 : uploadProgress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Error fallback */}
-          {error && (
-            <div
-              className="p-3.5 rounded-lg flex flex-col gap-2"
-              style={{ background: "var(--color-error-bg)", border: "1px solid var(--color-error-border)" }}
-            >
-              <div className="flex items-center gap-2 text-xs font-bold" style={{ color: "var(--color-error)" }}>
-                <AlertTriangle size={13} />
-                <span>Analyzer Fault</span>
-              </div>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{error}</p>
-              <button
-                onClick={() => processFile(selectedFile || undefined)}
-                className="btn btn-outlined py-1 px-2.5 text-[10px] font-bold self-start mt-1 flex items-center gap-1"
+          {/* Progress / Status */}
+          <AnimatePresence mode="wait">
+            {(isUploading || isAnalyzing) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3 pt-2"
               >
-                <RefreshCw size={10} /> Retry Upload
-              </button>
-            </div>
-          )}
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <RefreshCw size={14} className="animate-spin text-blue-600" />
+                  {isUploading ? "Uploading telemetry sequence..." : "AI analyzing log heuristics..."}
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden w-full">
+                  <motion.div
+                    className="h-full bg-blue-600 rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{ width: isAnalyzing ? "100%" : "40%" }}
+                    transition={{ duration: isAnalyzing ? 1.5 : 0.8, ease: "easeInOut" }}
+                  />
+                </div>
+              </motion.div>
+            )}
 
-          {/* Success processed badge */}
-          {!isUploading && !isAnalyzing && !error && selectedFile && (
-            <div
-              className="p-3 rounded-lg flex items-center gap-2 text-xs font-semibold"
-              style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success-border)", color: "var(--color-success)" }}
-            >
-              <CheckCircle2 size={13} />
-              <span>Loaded {selectedFile.name}</span>
-            </div>
-          )}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 flex flex-col gap-2"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-400">
+                  <AlertTriangle size={16} />
+                  Analyzer Fault
+                </div>
+                <p className="text-xs text-red-600 dark:text-red-300 leading-relaxed">{error}</p>
+              </motion.div>
+            )}
+
+            {!isUploading && !isAnalyzing && !error && selectedFile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium truncate">
+                  <FileText size={14} className="flex-shrink-0" />
+                  <span className="truncate">{selectedFile.name}</span>
+                </div>
+                <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* ── Right Side: AI Diagnostic Results ── */}
-        <div className="lg:col-span-2 card p-5 flex flex-col min-h-[360px]">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold flex items-center gap-1.5">
-              <BrainCircuit size={14} style={{ color: "var(--brand-600)" }} />
-              Diagnostic Report
+        {/* Right Side: AI Diagnostic Results */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[460px] flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+            <span className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Activity size={16} className="text-slate-400" />
+              Incident Diagnostics Report
             </span>
-            {aiResult && (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded"
-                style={{ background: "var(--color-success-bg)", color: "var(--color-success)" }}
-              >
-                <Sparkles size={10} /> Analysis Completed
-              </span>
-            )}
           </div>
 
-          {/* Analyzer Empty State */}
-          {!isUploading && !isAnalyzing && !aiResult && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-xs" style={{ color: "var(--text-tertiary)" }}>
-              <FileSearch size={32} className="opacity-30 mb-2" />
-              <p className="font-semibold" style={{ color: "var(--text-secondary)" }}>No diagnostic log analyzed yet</p>
-              <p className="max-w-[280px] mt-1">Upload a log file in the left panel to correlate operational telemetry with AI insights.</p>
-            </div>
-          )}
-
-          {/* Loading status */}
-          {(isUploading || isAnalyzing) && (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-xs gap-3" style={{ color: "var(--text-tertiary)" }}>
-              <RefreshCw size={24} className="animate-spin text-blue-500 opacity-60" />
-              <p className="font-semibold" style={{ color: "var(--text-secondary)" }}>Parsing diagnostic structure…</p>
-            </div>
-          )}
-
-          {/* Report body */}
-          {aiResult && !isUploading && !isAnalyzing && (
-            <div className="space-y-4 text-xs">
-              {/* Summary panel */}
-              <div className="p-3 rounded-lg" style={{ background: "var(--surface-1)", border: "1px solid var(--border-default)" }}>
-                <p className="font-bold mb-1.5 flex items-center gap-1" style={{ color: "var(--text-primary)" }}>
-                  Summary Overview
-                </p>
-                <p className="leading-relaxed" style={{ color: "var(--text-secondary)" }}>{aiResult.summary}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Anomalies list */}
-                <div className="p-3.5 rounded-lg" style={{ background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)" }}>
-                  <p className="font-bold mb-2 flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
-                    <AlertTriangle size={12} />
-                    Correlated Anomalies
+          <div className="flex-1 p-6 relative">
+            <AnimatePresence mode="wait">
+              {/* Empty State */}
+              {!isUploading && !isAnalyzing && !aiResult && !error && (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center text-center p-8"
+                >
+                  <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-4">
+                    <FileSearch size={28} className="text-slate-400" />
+                  </div>
+                  <h4 className="text-base font-medium text-slate-900 dark:text-white mb-1">Awaiting Diagnostic Input</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+                    Upload a log file from your services to generate an automated root cause analysis.
                   </p>
-                  <ul className="space-y-1.5">
-                    {aiResult.anomalies.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-1.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                        <ArrowRight size={10} className="shrink-0 mt-0.5 opacity-60" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                </motion.div>
+              )}
 
-                {/* Threat Signals */}
-                <div className="p-3.5 rounded-lg" style={{ background: "var(--color-error-bg)", border: "1px solid var(--color-error-border)" }}>
-                  <p className="font-bold mb-2 flex items-center gap-1" style={{ color: "var(--color-error)" }}>
-                    <Shield size={12} />
-                    Active Threat Signals
-                  </p>
-                  <ul className="space-y-1.5">
-                    {aiResult.threats.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-1.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                        <ArrowRight size={10} className="shrink-0 mt-0.5 opacity-60" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              {/* Loading State */}
+              {(isUploading || isAnalyzing) && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10"
+                >
+                  <RefreshCw size={32} className="animate-spin text-blue-600 mb-4" />
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Synthesizing Log Vectors</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Applying LLM heuristics to telemetry patterns...</p>
+                </motion.div>
+              )}
 
-              {/* Optimization suggestions */}
-              <div className="p-3.5 rounded-lg" style={{ background: "var(--brand-50)", border: "1px solid var(--border-default)" }}>
-                <p className="font-bold mb-2 flex items-center gap-1" style={{ color: "var(--brand-600)" }}>
-                  <Sparkles size={12} />
-                  Operational Recommendations
-                </p>
-                <ul className="space-y-1.5">
-                  {aiResult.recommendations.map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-1.5 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                      <ArrowRight size={10} className="shrink-0 mt-0.5 opacity-60" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
+              {/* Report Body */}
+              {aiResult && !isUploading && !isAnalyzing && (
+                <motion.div
+                  key="report"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ staggerChildren: 0.1 }}
+                  className="space-y-6"
+                >
+                  {/* Summary & Severity */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Incident Summary</h4>
+                      <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                        {aiResult.summary}
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end gap-2">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Severity Score</h4>
+                      <div className={`px-3 py-1 rounded-full text-xs font-bold border ${severityConfig[aiResult.severity].bg} ${severityConfig[aiResult.severity].border} ${severityConfig[aiResult.severity].color}`}>
+                        {severityConfig[aiResult.severity].label}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metadata Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mb-1">Lines Parsed</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white tabular-nums">{aiResult.stats.linesParsed}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mb-1">Error Events</div>
+                      <div className="text-lg font-bold text-red-600 dark:text-red-400 tabular-nums">{aiResult.stats.errors}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mb-1">Warning Events</div>
+                      <div className="text-lg font-bold text-amber-600 dark:text-amber-400 tabular-nums">{aiResult.stats.warnings}</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mb-1">Impacted Nodes</div>
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400 tabular-nums">{aiResult.affectedServices.length}</div>
+                    </div>
+                  </div>
+
+                  {/* Root Cause & Anomalies */}
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Root Cause Analysis</h4>
+                    <div className="bg-red-50 dark:bg-red-950/20 border-l-2 border-red-500 rounded-r-lg p-4 space-y-2">
+                      {aiResult.anomalies.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <ArrowRight size={14} className="mt-0.5 text-red-500 shrink-0" />
+                          <span className="leading-relaxed">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Telemetry Correlations */}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <Cpu size={14} /> Telemetry Correlation
+                      </h4>
+                      <ul className="space-y-3 border-l-2 border-slate-200 dark:border-slate-700 ml-2 pl-3">
+                        {aiResult.telemetryCorrelation.map((item, idx) => (
+                          <li key={idx} className="text-sm text-slate-600 dark:text-slate-400 relative">
+                            <span className="absolute -left-[17px] top-1.5 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <CheckCircle2 size={14} /> Recommended Actions
+                      </h4>
+                      <div className="space-y-2">
+                        {aiResult.recommendations.map((item, idx) => (
+                          <div key={idx} className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50 rounded-lg text-sm text-blue-800 dark:text-blue-200">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Affected Services */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                     <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Affected Services</h4>
+                     <div className="flex gap-2 flex-wrap">
+                       {aiResult.affectedServices.map(svc => (
+                         <span key={svc} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-xs font-mono">
+                           <Server size={12} /> {svc}
+                         </span>
+                       ))}
+                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
