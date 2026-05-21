@@ -2,12 +2,15 @@ import { Router, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   getAllAlerts, getAlertById, acknowledgeAlert, resolveAlert, suppressAlert, getRules,
-  evaluateThresholds
+  evaluateThresholds, triggerAgentOfflineAlert, resolveAgentOfflineAlert
 } from "../services/alertEngineService";
 import {
   getAllIncidents, getIncidentById, acknowledgeIncident, resolveIncident,
   addTimelineEvent, getAllDeployments
 } from "../services/incidentTimelineService";
+import path from "path";
+import fs from "fs";
+import { verifySshConnection, installAgentViaSsh } from "../services/sshService";
 
 export const opsRoutes = Router();
 
@@ -146,6 +149,7 @@ opsRoutes.post("/agent/heartbeat", asyncHandler(async (req: Request, res: Respon
   }
   
   const existing = agentRegistry.get(payload.agentId);
+  const wasOffline = existing?.status === "offline";
   const status = existing?.status === "draining" ? "draining" : "healthy";
 
   agentRegistry.set(payload.agentId, {
@@ -155,8 +159,19 @@ opsRoutes.post("/agent/heartbeat", asyncHandler(async (req: Request, res: Respon
   });
   console.log(`[AGENT] Heartbeat received from ${payload.hostname} (${payload.agentId})`);
 
+  const io = req.app.get("io");
+
+  if (wasOffline && io) {
+    resolveAgentOfflineAlert(payload.hostname, io);
+    io.emit("agent:updated", {
+      agentId: payload.agentId,
+      hostname: payload.hostname,
+      status,
+      lastSeen: new Date(),
+    });
+  }
+
   if (payload.metrics) {
-    const io = req.app.get("io");
     const metricsToEval = {
       cpu: payload.metrics.cpu,
       memory: payload.metrics.memory,
@@ -265,3 +280,217 @@ opsRoutes.post("/agents/:id/drain", asyncHandler(async (req: Request, res: Respo
   console.log(`[AGENT] Agent ${id} marked as draining`);
   res.json({ success: true, message: `Agent ${id} marked as draining` });
 }));
+
+// ─── Ops Installer Endpoints ──────────────────────────────────────────────────
+
+/** GET /api/ops/install.sh — dynamic shell installer */
+opsRoutes.get("/install.sh", (req: Request, res: Response) => {
+  const protocol = req.protocol;
+  const host = req.get("host");
+  const apiBaseUrl = (req.query.apiBaseUrl as string) || `${protocol}://${host}`;
+  const apiKey = (req.query.apiKey as string) || "dev-key";
+
+  const script = `#!/bin/bash
+set -e
+
+echo "=================================================="
+echo "      CloudAI Monitor Agent Installation          "
+echo "=================================================="
+echo "[1/5] Checking environment..."
+
+INSTALL_DIR="/opt/cloudai-agent"
+USE_SUDO=""
+if [ "\$EUID" -ne 0 ]; then
+  if sudo -n true 2>/dev/null; then
+    USE_SUDO="sudo"
+  else
+    echo "⚠️ Warning: Not running as root and no passwordless sudo. Installing to home directory."
+    INSTALL_DIR="\$HOME/.cloudai-agent"
+  fi
+fi
+
+echo "Installing to: \$INSTALL_DIR"
+\$USE_SUDO mkdir -p "\$INSTALL_DIR"
+\$USE_SUDO chmod 755 "\$INSTALL_DIR" 2>/dev/null || true
+
+# Check Node.js
+if ! command -v node &> /dev/null; then
+  echo "[2/5] Node.js not found. Attempting to install..."
+  if [ -f /etc/debian_version ]; then
+    echo "Installing Node.js via NodeSource on Debian/Ubuntu..."
+    \$USE_SUDO apt-get update -y
+    \$USE_SUDO apt-get install -y curl gnupg
+    curl -fsSL https://deb.nodesource.com/setup_18.x | \$USE_SUDO bash -
+    \$USE_SUDO apt-get install -y nodejs
+  elif [ -f /etc/redhat-release ]; then
+    echo "Installing Node.js on CentOS/RHEL..."
+    curl -fsSL https://rpm.nodesource.com/setup_18.x | \$USE_SUDO bash -
+    \$USE_SUDO yum install -y nodejs
+  else
+    echo "❌ Error: Node.js is required but not installed, and OS is unsupported for auto-install."
+    exit 1
+  fi
+else
+  echo "[2/5] Node.js is already installed: \$(node -v)"
+fi
+
+# Check npm
+if ! command -v npm &> /dev/null; then
+  echo "npm not found. Installing..."
+  if [ -f /etc/debian_version ]; then
+    \$USE_SUDO apt-get install -y npm
+  elif [ -f /etc/redhat-release ]; then
+    \$USE_SUDO yum install -y npm
+  fi
+fi
+
+echo "[3/5] Downloading agent source..."
+# Download files from backend API
+\$USE_SUDO curl -fsSL "${apiBaseUrl}/api/ops/agent/package.json" -o "\$INSTALL_DIR/package.json"
+\$USE_SUDO curl -fsSL "${apiBaseUrl}/api/ops/agent/agent.js" -o "\$INSTALL_DIR/agent.js"
+
+echo "[4/5] Installing agent dependencies..."
+cd "\$INSTALL_DIR"
+\$USE_SUDO npm install --production
+
+echo "[5/5] Configuring agent service daemon..."
+# Try to install systemd service if systemctl is available
+if command -v systemctl &> /dev/null; then
+  echo "Creating systemd service..."
+  SERVICE_FILE="[Unit]
+Description=CloudAI Monitoring Agent
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=\$INSTALL_DIR
+ExecStart=\$(command -v node) agent.js --api-key=${apiKey} --endpoint=${apiBaseUrl}
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cloudai-agent
+
+[Install]
+WantedBy=multi-user.target"
+
+  echo "\$SERVICE_FILE" | \$USE_SUDO tee /etc/systemd/system/cloudai-agent.service > /dev/null
+  \$USE_SUDO systemctl daemon-reload
+  \$USE_SUDO systemctl enable cloudai-agent
+  \$USE_SUDO systemctl restart cloudai-agent
+  echo "✓ Systemd service 'cloudai-agent' started and enabled."
+else
+  echo "⚠️ systemd not detected. Starting agent in the background via nohup..."
+  \$USE_SUDO nohup node agent.js --api-key=${apiKey} --endpoint=${apiBaseUrl} > agent.log 2>&1 &
+  echo "✓ Agent started in the background (PID: \$!)."
+fi
+
+echo "=================================================="
+echo "✓ Installation completed successfully!"
+echo "=================================================="
+`;
+
+  res.setHeader("Content-Type", "application/x-sh");
+  res.send(script);
+});
+
+/** GET /api/ops/agent/agent.js — serve agent.js code */
+opsRoutes.get("/agent/agent.js", (req: Request, res: Response) => {
+  const filePath = path.join(process.cwd(), "../agent/agent.js");
+  const altPath = path.join(__dirname, "../../../agent/agent.js");
+  const actualPath = fs.existsSync(filePath) ? filePath : altPath;
+
+  if (fs.existsSync(actualPath)) {
+    res.sendFile(actualPath);
+  } else {
+    res.status(404).send("agent.js not found on server");
+  }
+});
+
+/** GET /api/ops/agent/package.json — serve agent package.json */
+opsRoutes.get("/agent/package.json", (req: Request, res: Response) => {
+  const filePath = path.join(process.cwd(), "../agent/package.json");
+  const altPath = path.join(__dirname, "../../../agent/package.json");
+  const actualPath = fs.existsSync(filePath) ? filePath : altPath;
+
+  if (fs.existsSync(actualPath)) {
+    res.sendFile(actualPath);
+  } else {
+    res.status(404).send("package.json not found on server");
+  }
+});
+
+/** POST /api/ops/ssh/install-agent — deploy agent via SSH */
+opsRoutes.post("/ssh/install-agent", asyncHandler(async (req: Request, res: Response) => {
+  const { config, apiKey = "dev-key", socketId } = req.body;
+  if (!config || !config.host || !config.username) {
+    res.status(400).json({ success: false, message: "SSH host and username configuration required." });
+    return;
+  }
+
+  const io = req.app.get("io");
+  const targetSocket = socketId && io ? io.sockets.sockets.get(socketId) : null;
+
+  const onProgress = (msg: string) => {
+    if (targetSocket) {
+      targetSocket.emit("ssh:install-progress", { message: msg });
+    } else if (io) {
+      io.emit("ssh:install-progress", { message: msg });
+    }
+    console.log(`[SSH Progress] ${msg}`);
+  };
+
+  const protocol = req.protocol;
+  const host = req.get("host");
+  const apiBaseUrl = `${protocol}://${host}`;
+
+  onProgress("Initializing agent remote deployment sequence...");
+
+  try {
+    await verifySshConnection(config);
+  } catch (err: any) {
+    onProgress(`❌ Connection verification failed: ${err.message}`);
+    res.status(400).json({ success: false, message: `SSH authentication failed: ${err.message}` });
+    return;
+  }
+
+  res.json({ success: true, message: "Authentication verified. Installation started in background." });
+
+  (async () => {
+    try {
+      await installAgentViaSsh(config, apiBaseUrl, apiKey, onProgress);
+    } catch (err: any) {
+      onProgress(`❌ Agent installation sequence failed: ${err.message}`);
+    }
+  })();
+}));
+
+// ─── Agent Status Background Sweeper ──────────────────────────────────────────
+
+let sweeperInterval: NodeJS.Timeout | null = null;
+
+export function startAgentStatusSweeper(io: any) {
+  if (sweeperInterval) {
+    clearInterval(sweeperInterval);
+  }
+
+  sweeperInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [id, entry] of agentRegistry.entries()) {
+      if (entry.status !== "offline" && now - entry.lastSeen.getTime() > 30000) {
+        entry.status = "offline";
+        console.log(`[AGENT SWEEPER] Agent ${entry.heartbeat.hostname} (${id}) is offline (last seen ${entry.lastSeen.toISOString()})`);
+        
+        triggerAgentOfflineAlert(entry.heartbeat.hostname, io);
+        
+        io.emit("agent:updated", {
+          agentId: id,
+          hostname: entry.heartbeat.hostname,
+          status: "offline",
+          lastSeen: entry.lastSeen,
+        });
+      }
+    }
+  }, 10000);
+}
+

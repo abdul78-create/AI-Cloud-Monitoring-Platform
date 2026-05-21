@@ -10,6 +10,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { HttpError } from "./utils/httpError";
 import { startTelemetryBroadcaster } from "./services/telemetryBroadcaster";
+import { startAgentStatusSweeper } from "./routes/opsRoutes";
 
 // Global process safeguards to prevent crash on Redis socket errors or other unhandled issues
 process.on("uncaughtException", (err) => {
@@ -94,6 +95,9 @@ io.on("connection", (socket) => {
 
 // Start real-time telemetry broadcaster
 startTelemetryBroadcaster(io);
+
+// Start background agent status sweeper to monitor heartbeat intervals
+startAgentStatusSweeper(io);
 
 // Export io instance to use in services
 export { io };

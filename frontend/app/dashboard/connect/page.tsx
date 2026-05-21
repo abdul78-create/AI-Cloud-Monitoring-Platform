@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,6 +9,8 @@ import {
   Plus, Shield, Globe,
   KeyRound, Eye, EyeOff, Loader2, CheckCircle2, Clock, Zap
 } from "lucide-react";
+import { api } from "@/services/api";
+import { useMonitoringStore } from "@/store/useMonitoringStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -280,12 +282,16 @@ function StepConfigure({
   setForm,
   onBack,
   onConnect,
+  linuxMode,
+  setLinuxMode,
 }: {
   provider: Provider;
   form: Record<string, string>;
   setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onBack: () => void;
   onConnect: () => void;
+  linuxMode: "manual" | "ssh";
+  setLinuxMode: (m: "manual" | "ssh") => void;
 }) {
   const [showSecret, setShowSecret] = useState(false);
   const [showKey, setShowKey] = useState(false);
@@ -449,68 +455,135 @@ function StepConfigure({
         {/* Linux SSH */}
         {provider === "linux" && (
           <>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <InputField label="Hostname / IP Address" placeholder="192.168.1.100 or server.example.com" value={form.hostname || ""} onChange={set("hostname")} />
-              </div>
-              <InputField label="SSH Port" placeholder="22" value={form.port || "22"} onChange={set("port")} />
-            </div>
-            <InputField label="Username" placeholder="ubuntu" value={form.username || ""} onChange={set("username")} />
-
-            {/* Auth method toggle */}
-            <div className="space-y-1.5">
-              <label className="text-label" style={{ color: "var(--text-secondary)" }}>Authentication Method</label>
+            <div className="space-y-1.5 mb-4">
+              <label className="text-label" style={{ color: "var(--text-secondary)" }}>Deployment Mode</label>
               <div className="flex gap-2">
-                {(["key", "password"] as AuthMethod[]).map(m => (
+                {[
+                  { id: "ssh", label: "Automatic Agent (SSH)" },
+                  { id: "manual", label: "Manual Install Script" },
+                ].map(m => (
                   <button
-                    key={m}
-                    onClick={() => setAuthMethod(m)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors"
+                    key={m.id}
+                    type="button"
+                    onClick={() => setLinuxMode(m.id as "manual" | "ssh")}
+                    className="flex-1 py-2 rounded-md text-sm font-medium border transition-colors text-center animate-pulse-subtle"
                     style={{
-                      background: authMethod === m ? "var(--brand-50)" : "var(--surface-1)",
-                      borderColor: authMethod === m ? "var(--brand-600)" : "var(--border-default)",
-                      color: authMethod === m ? "var(--brand-600)" : "var(--text-secondary)",
+                      background: linuxMode === m.id ? "var(--brand-50)" : "var(--surface-1)",
+                      borderColor: linuxMode === m.id ? "var(--brand-600)" : "var(--border-default)",
+                      color: linuxMode === m.id ? "var(--brand-600)" : "var(--text-secondary)",
                     }}
                   >
-                    {m === "key" ? <KeyRound size={13} /> : <Shield size={13} />}
-                    {m === "key" ? "SSH Key" : "Password"}
+                    {m.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {authMethod === "key" ? (
-              <div className="space-y-1.5">
-                <label className="text-label" style={{ color: "var(--text-secondary)" }}>Private Key (PEM)</label>
-                <textarea
-                  rows={6}
-                  placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;..."
-                  value={form.privateKey || ""}
-                  onChange={e => set("privateKey")(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border rounded-lg font-mono resize-none"
-                  style={{ background: "var(--surface-0)", borderColor: "var(--border-default)", color: "var(--text-primary)" }}
-                />
-              </div>
+            {linuxMode === "ssh" ? (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <InputField label="Hostname / IP Address" placeholder="192.168.1.100 or server.example.com" value={form.hostname || ""} onChange={set("hostname")} />
+                  </div>
+                  <InputField label="SSH Port" placeholder="22" value={form.port || "22"} onChange={set("port")} />
+                </div>
+                <InputField label="Username" placeholder="ubuntu" value={form.username || ""} onChange={set("username")} />
+
+                {/* Auth method toggle */}
+                <div className="space-y-1.5">
+                  <label className="text-label" style={{ color: "var(--text-secondary)" }}>Authentication Method</label>
+                  <div className="flex gap-2">
+                    {(["key", "password"] as AuthMethod[]).map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          setAuthMethod(m);
+                          set("authMethod")(m);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors"
+                        style={{
+                          background: authMethod === m ? "var(--brand-50)" : "var(--surface-1)",
+                          borderColor: authMethod === m ? "var(--brand-600)" : "var(--border-default)",
+                          color: authMethod === m ? "var(--brand-600)" : "var(--text-secondary)",
+                        }}
+                      >
+                        {m === "key" ? <KeyRound size={13} /> : <Shield size={13} />}
+                        {m === "key" ? "SSH Key" : "Password"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {authMethod === "key" ? (
+                  <div className="space-y-1.5">
+                    <label className="text-label" style={{ color: "var(--text-secondary)" }}>Private Key (PEM)</label>
+                    <textarea
+                      rows={6}
+                      placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;..."
+                      value={form.privateKey || ""}
+                      onChange={e => set("privateKey")(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border rounded-lg font-mono resize-none"
+                      style={{ background: "var(--surface-0)", borderColor: "var(--border-default)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-label" style={{ color: "var(--text-secondary)" }}>Password</label>
+                    <div className="relative">
+                      <input
+                        type={showKey ? "text" : "password"}
+                        placeholder="Enter SSH password"
+                        value={form.password || ""}
+                        onChange={e => set("password")(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 text-sm border rounded-lg"
+                        style={{ background: "var(--surface-0)", borderColor: "var(--border-default)", color: "var(--text-primary)" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey(s => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="space-y-1.5">
-                <label className="text-label" style={{ color: "var(--text-secondary)" }}>Password</label>
-                <div className="relative">
-                  <input
-                    type={showKey ? "text" : "password"}
-                    placeholder="Enter SSH password"
-                    value={form.password || ""}
-                    onChange={e => set("password")(e.target.value)}
-                    className="w-full px-3 py-2 pr-10 text-sm border rounded-lg"
-                    style={{ background: "var(--surface-0)", borderColor: "var(--border-default)", color: "var(--text-primary)" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(s => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg text-sm bg-slate-950 border border-slate-800 text-slate-200 space-y-3 font-mono relative group">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>LINUX AGENT SHELL INSTALLER</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+                          ? process.env.NEXT_PUBLIC_API_BASE_URL.replace("/api", "")
+                          : "http://localhost:5000";
+                        const cmd = `curl -fsSL "${apiBaseUrl}/api/ops/install.sh?apiKey=dev-key" | bash`;
+                        navigator.clipboard.writeText(cmd);
+                        alert("Command copied to clipboard!");
+                      }}
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 transition-colors text-white"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre className="break-all whitespace-pre-wrap select-all text-xs bg-transparent border-0 p-0 text-emerald-400 font-mono">
+                    {`curl -fsSL "${process.env.NEXT_PUBLIC_API_BASE_URL ? process.env.NEXT_PUBLIC_API_BASE_URL.replace("/api", "") : "http://localhost:5000"}/api/ops/install.sh?apiKey=dev-key" | bash`}
+                  </pre>
+                </div>
+                
+                <div className="space-y-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <p className="font-semibold text-slate-300">Instructions:</p>
+                  <ol className="list-decimal pl-4 space-y-1 text-slate-400">
+                    <li>Log in to your target Linux server.</li>
+                    <li>Copy and paste the command block above into your terminal.</li>
+                    <li>Press Enter. The script will automatically discover and install all agent telemetry requirements and start the daemon service.</li>
+                    <li>Click &apos;Listen for Connection&apos; below to wait for the server&apos;s telemetry heartbeat.</li>
+                  </ol>
                 </div>
               </div>
             )}
@@ -524,24 +597,155 @@ function StepConfigure({
           className="btn btn-primary px-8 py-2.5 text-sm font-semibold flex items-center gap-2"
         >
           <Wifi size={15} />
-          Connect & Discover Servers
+          {provider === "linux"
+            ? linuxMode === "ssh"
+              ? "Connect & Install Agent"
+              : "Listen for Connection"
+            : "Connect & Discover Servers"}
         </button>
       </div>
     </div>
   );
 }
 
-function StepConnecting({ provider }: { provider: Provider }) {
+function StepConnecting({
+  provider,
+  linuxMode,
+  sshLogs,
+  sshError,
+  onRetry,
+  onSimulateHeartbeat,
+}: {
+  provider: Provider;
+  linuxMode: "manual" | "ssh";
+  sshLogs: string[];
+  sshError: string | null;
+  onRetry: () => void;
+  onSimulateHeartbeat?: () => void;
+}) {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const providerName = PROVIDERS.find(p => p.id === provider)?.name ?? provider;
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    PROGRESS_STEPS_LABELS.forEach((_, i) => {
-      setTimeout(() => {
-        setCompletedSteps(prev => [...prev, i]);
-      }, 700 + i * 750);
-    });
-  }, []);
+    if (provider !== "linux" || linuxMode !== "ssh") {
+      PROGRESS_STEPS_LABELS.forEach((_, i) => {
+        setTimeout(() => {
+          setCompletedSteps(prev => [...prev, i]);
+        }, 700 + i * 750);
+      });
+    }
+  }, [provider, linuxMode]);
+
+  useEffect(() => {
+    if (provider === "linux" && linuxMode === "ssh") {
+      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [sshLogs, provider, linuxMode]);
+
+  if (provider === "linux" && linuxMode === "ssh") {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: "var(--brand-50)" }}>
+            <Terminal size={28} className={sshError ? "text-red-500" : "animate-spin"} style={{ color: sshError ? undefined : "var(--brand-600)" }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            {sshError ? "Deployment Failed" : "Agent Automatic Deployment"}
+          </h2>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {sshError ? "SSH command execution failed. See terminal output below." : "SSH credentials authenticated. Running installer on remote host..."}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-slate-950 text-slate-100 p-4 font-mono text-xs overflow-hidden shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3 text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${sshError ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+              <span className="ml-1 text-[10px]">deploy-agent.sh (SSH Console)</span>
+            </span>
+            <span className="text-[10px] animate-pulse">{sshError ? "FAILED" : "STREAMING"}</span>
+          </div>
+          
+          <div className="h-64 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pr-2">
+            {sshLogs.map((log, idx) => {
+              let textClass = "text-slate-300";
+              if (log.startsWith("❌") || log.startsWith("[REMOTE ERR]")) textClass = "text-red-400";
+              else if (log.startsWith("✓") || log.includes("completed successfully") || log.startsWith("Success")) textClass = "text-emerald-400 font-semibold";
+              else if (log.startsWith("[LOCAL]")) textClass = "text-blue-400";
+              else if (log.startsWith("[SSH]")) textClass = "text-cyan-400 font-semibold";
+
+              return (
+                <div key={idx} className={`leading-relaxed break-all ${textClass}`}>
+                  {log}
+                </div>
+              );
+            })}
+            <div ref={logsEndRef} />
+          </div>
+        </div>
+
+        {sshError && (
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={onRetry}
+              className="btn btn-primary px-6 py-2 text-sm font-semibold"
+            >
+              Configure & Retry
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (provider === "linux" && linuxMode === "manual") {
+    return (
+      <div className="max-w-md mx-auto text-center space-y-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full" style={{ background: "var(--brand-50)" }}>
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--brand-600)" }} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            Waiting for Agent Heartbeat
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+            Please run the curl command on your remote Linux host.
+            Once executed, the agent will send its first telemetry packet and this screen will transition automatically.
+          </p>
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
+            style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
+          >
+            <Clock size={12} />
+            Listening on WebSocket port...
+          </div>
+        </div>
+
+        <div className="p-5 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 space-y-3">
+          <p className="text-xs text-slate-400 leading-relaxed">
+            No real VM on hand? Click below to send a mock heartbeat to the local daemon and bypass waiting.
+          </p>
+          <button
+            onClick={onSimulateHeartbeat}
+            className="w-full btn btn-primary flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-all shadow-md"
+          >
+            <Zap size={14} />
+            Simulate Agent Heartbeat
+          </button>
+        </div>
+        
+        <div className="flex justify-center">
+          <button
+            onClick={onRetry}
+            className="btn btn-outlined text-sm font-semibold"
+          >
+            Back to Config
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto text-center">
@@ -761,6 +965,12 @@ export default function ConnectInfrastructurePage() {
   const [provider, setProvider]       = useState<Provider | null>(null);
   const [form, setForm]               = useState<Record<string, string>>({});
   const [servers, setServers]         = useState<ServerData[]>([]);
+  const [linuxMode, setLinuxMode]     = useState<"manual" | "ssh">("ssh");
+  const [sshLogs, setSshLogs]         = useState<string[]>([]);
+  const [isSshRunning, setIsSshRunning] = useState<boolean>(false);
+  const [sshError, setSshError]       = useState<string | null>(null);
+
+  const socket = useMonitoringStore(state => state.socket);
 
   const handleSelectProvider = (p: Provider) => setProvider(p);
 
@@ -769,13 +979,77 @@ export default function ConnectInfrastructurePage() {
     setStep(s => (s + 1) as Step);
   };
 
-  const handleConnect = () => {
-    setStep(2);
-    // After "connecting" animation completes, transition to step 3
-    setTimeout(() => {
-      setServers(INITIAL_SERVERS);
-      setStep(3);
-    }, 5000);
+  const handleSimulateHeartbeat = async () => {
+    try {
+      const mockPayload = {
+        agentId: "agent-simulated-" + Math.random().toString(36).substring(2, 7),
+        hostname: "simulated-linux-node-" + Math.random().toString(36).substring(2, 5) + ".internal",
+        ip: "192.168.1.144",
+        version: "1.0.0",
+        metrics: {
+          cpu: 34.5,
+          memory: 62.8,
+          disk: 41.2,
+          networkIn: 8.4,
+          networkOut: 5.6,
+          networkInBytes: 8400,
+          networkOutBytes: 5600,
+          uptime: 120
+        },
+        processes: [
+          { pid: 101, name: "node", cpu: 0.8, memory: 1.5, command: "node agent.js" },
+          { pid: 202, name: "nginx", cpu: 0.3, memory: 0.8, command: "nginx: worker process" }
+        ]
+      };
+      await api.post("/ops/agent/heartbeat", mockPayload);
+    } catch (err) {
+      console.error("Error simulating agent heartbeat:", err);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (provider === "linux") {
+      if (linuxMode === "ssh") {
+        const config = {
+          host: form.hostname,
+          port: parseInt(form.port || "22", 10),
+          username: form.username,
+          password: form.password || undefined,
+          privateKey: form.privateKey || undefined,
+        };
+        setIsSshRunning(true);
+        setSshError(null);
+        setSshLogs(["[LOCAL] Initiating connection request to remote host..."]);
+        setStep(2);
+
+        try {
+          const response = await api.post("/ops/ssh/install-agent", {
+            config,
+            apiKey: "dev-key",
+            socketId: socket?.id
+          });
+          if (response.data.success) {
+            setSshLogs(prev => [...prev, "[LOCAL] SSH authentication verified. Script deployment sequence running in background."]);
+          } else {
+            setSshError(response.data.message || "Failed to initiate agent installation");
+            setIsSshRunning(false);
+          }
+        } catch (err: any) {
+          setSshError(err.message || "Failed to connect to remote server");
+          setIsSshRunning(false);
+        }
+      } else {
+        // Manual mode: simply go to connecting screen to wait for connection
+        setStep(2);
+      }
+    } else {
+      setStep(2);
+      // Mock discovery for AWS, Docker, Kubernetes
+      setTimeout(() => {
+        setServers(INITIAL_SERVERS);
+        setStep(3);
+      }, 5000);
+    }
   };
 
   const handleConnectMore = () => {
@@ -783,7 +1057,64 @@ export default function ConnectInfrastructurePage() {
     setProvider(null);
     setForm({});
     setServers([]);
+    setSshLogs([]);
+    setSshError(null);
+    setIsSshRunning(false);
   };
+
+  // Wire up socket listeners when on step 2 (Connecting / Installing)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSshProgress = (data: { message: string }) => {
+      setSshLogs(prev => [...prev, data.message]);
+      if (data.message.includes("❌")) {
+        setSshError(data.message);
+        setIsSshRunning(false);
+      }
+      if (data.message.includes("Installation completed successfully!")) {
+        setIsSshRunning(false);
+      }
+    };
+
+    const handleAgentTelemetry = async () => {
+      try {
+        const response = await api.get("/ops/agents");
+        if (response.data.success) {
+          const agents = response.data.data;
+          const serverDataList = agents.map((agent: any) => ({
+            id: agent.agentId,
+            hostname: agent.hostname,
+            ip: agent.ip,
+            instanceType: `Agent v${agent.version}`,
+            os: "Linux OS",
+            status: agent.status === "offline" ? "critical" : (agent.status === "healthy" ? "healthy" : "warning"),
+            uptime: agent.uptime ? `${Math.round(agent.uptime)}s` : "0s",
+            region: "On-Premises",
+            cpu: agent.metrics?.cpu ?? 0,
+            memory: agent.metrics?.memory ?? 0,
+            disk: agent.metrics?.disk ?? 0,
+            networkIn: agent.metrics?.networkIn ?? 0,
+            networkOut: agent.metrics?.networkOut ?? 0,
+          }));
+          setServers(serverDataList);
+          if (step === 2 && provider === "linux") {
+            setStep(3);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching agents list:", err);
+      }
+    };
+
+    socket.on("ssh:install-progress", handleSshProgress);
+    socket.on("agent:telemetry", handleAgentTelemetry);
+
+    return () => {
+      socket.off("ssh:install-progress", handleSshProgress);
+      socket.off("agent:telemetry", handleAgentTelemetry);
+    };
+  }, [socket, step, provider]);
 
   return (
     <div className="min-h-full">
@@ -866,10 +1197,19 @@ export default function ConnectInfrastructurePage() {
               setForm={setForm}
               onBack={() => setStep(0)}
               onConnect={handleConnect}
+              linuxMode={linuxMode}
+              setLinuxMode={setLinuxMode}
             />
           )}
           {step === 2 && provider && (
-            <StepConnecting provider={provider} />
+            <StepConnecting
+              provider={provider}
+              linuxMode={linuxMode}
+              sshLogs={sshLogs}
+              sshError={sshError}
+              onRetry={() => setStep(1)}
+              onSimulateHeartbeat={handleSimulateHeartbeat}
+            />
           )}
           {step === 3 && provider && (
             <StepLiveMonitoring

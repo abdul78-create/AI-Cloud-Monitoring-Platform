@@ -331,3 +331,81 @@ export function suppressAlert(id: string): FiredAlert | null {
 export function getRules(): AlertRule[] {
   return ALERT_RULES;
 }
+
+export function triggerAgentOfflineAlert(service: string, io: SocketServer): string | null {
+  const ruleId = "rule-agent-offline";
+  const alertKey = `${ruleId}:${service}`;
+  
+  // Check if already firing
+  for (const [id, alert] of firedAlerts) {
+    if (alert.ruleId === ruleId && alert.affectedService === service && alert.state === "firing") {
+      return id; // already firing
+    }
+  }
+
+  const alertId = `alert-${(alertIdCounter++).toString().padStart(4, "0")}`;
+  const message = `Agent daemon offline on ${service} — heartbeat missed. Observability telemetry stream has disconnected. Verify node status and agent service daemon log.`;
+
+  const alert: FiredAlert = {
+    id: alertId,
+    ruleId,
+    ruleName: "Agent Daemon Offline",
+    metric: "uptime",
+    currentValue: 0,
+    threshold: 1,
+    severity: "critical",
+    state: "firing",
+    firedAt: new Date(),
+    resolvedAt: null,
+    affectedService: service,
+    message,
+    channels: ["slack", "pagerduty", "email"],
+    escalationLevel: 0,
+    acknowledgedBy: null,
+  };
+
+  firedAlerts.set(alertId, alert);
+  lastFiredAt.set(alertKey, Date.now());
+
+  // Create corresponding incident
+  const incident = createIncidentFromAlert(alertId, {
+    ruleName: "Agent Daemon Offline",
+    severity: "critical",
+    affectedService: service,
+    message,
+  });
+  alertToIncidentMap.set(alertId, incident.id);
+
+  // Emit to all connected frontend clients
+  io.emit("alert:fired", alert);
+  io.emit("incident:created", incident);
+  console.log(`[ALERT ENGINE] Fired: Agent Daemon Offline on ${service}. Created incident ${incident.id}`);
+
+  return alertId;
+}
+
+export function resolveAgentOfflineAlert(service: string, io: SocketServer): void {
+  const ruleId = "rule-agent-offline";
+  for (const [id, alert] of firedAlerts) {
+    if (
+      alert.ruleId === ruleId &&
+      alert.affectedService === service &&
+      alert.state === "firing"
+    ) {
+      alert.state = "resolved";
+      alert.resolvedAt = new Date();
+      io.emit("alert:resolved", alert);
+      console.log(`[ALERT ENGINE] Auto-resolved agent offline alert: ${id}`);
+
+      const incidentId = alertToIncidentMap.get(id);
+      if (incidentId) {
+        resolveIncident(incidentId, "Agent Heartbeat Reconnected");
+        const resolvedInc = getIncidentById(incidentId);
+        if (resolvedInc) {
+          io.emit("incident:resolved", resolvedInc);
+        }
+      }
+    }
+  }
+}
+
