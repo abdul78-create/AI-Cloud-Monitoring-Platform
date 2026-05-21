@@ -33,10 +33,15 @@ export const useSocket = () => {
       }));
     });
 
-    socket.on("alert", (data) => {
-      useMonitoringStore.setState((state) => ({
-        alerts: [data, ...state.alerts].slice(-10)
-      }));
+    const handleAlertFired = (data: any) => {
+      useMonitoringStore.setState((state) => {
+        // Prevent duplicate alerts in state
+        const exists = state.alerts.some(a => a.id === data.id);
+        if (exists) return state;
+        return {
+          alerts: [data, ...state.alerts].slice(-10)
+        };
+      });
       
       const severity = data.severity || "critical";
       const now = Date.now();
@@ -82,7 +87,7 @@ export const useSocket = () => {
                   {severity.toUpperCase()} ALERT
                 </p>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Alert on {data.hostname || 'system'}: {data.metric || 'metric'} exceeded threshold!
+                  Alert on {data.hostname || data.affectedService || 'system'}: {data.message || `${data.metric} exceeded threshold`}
                 </p>
               </div>
             </div>
@@ -98,6 +103,86 @@ export const useSocket = () => {
           </div>
         </div>
       ), { duration: 5000 });
+    };
+
+    socket.on("alert", handleAlertFired);
+    socket.on("alert:fired", handleAlertFired);
+
+    socket.on("alert:resolved", (data) => {
+      useMonitoringStore.setState((state) => ({
+        alerts: state.alerts.map(a => a.id === data.id ? { ...a, ...data, severity: "info" as any } : a)
+      }));
+      toast.success(`Alert on ${data.affectedService || 'system'} resolved.`);
+    });
+
+    socket.on("incident:created", (data) => {
+      addTimelineEvent({
+        type: "warning",
+        message: `New incident ${data.id} created: ${data.title}`,
+      });
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 shadow-premium rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4 transition-all duration-300`}>
+          <div className="flex-1 w-0">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center border bg-red-50 dark:bg-red-950/30 text-red-500 border-red-100 dark:border-red-900/50">
+                  <Zap size={20} className="animate-pulse" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-bold text-red-600">INCIDENT CREATED</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {data.id}: {data.title}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="ml-4 flex-shrink-0 flex">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="bg-transparent rounded-md inline-flex text-slate-400 hover:text-slate-500 focus:outline-none"
+            >
+              <span className="sr-only">Close</span>
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      ));
+    });
+
+    socket.on("incident:resolved", (data) => {
+      addTimelineEvent({
+        type: "info",
+        message: `Incident ${data.id} resolved.`,
+      });
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-premium rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4 transition-all duration-300`}>
+          <div className="flex-1 w-0">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center border bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 border-emerald-100 dark:border-emerald-900/50">
+                  <Check size={20} />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-bold text-emerald-600">INCIDENT RESOLVED</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {data.id} has been marked as resolved.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="ml-4 flex-shrink-0 flex">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="bg-transparent rounded-md inline-flex text-slate-400 hover:text-slate-500 focus:outline-none"
+            >
+              <span className="sr-only">Close</span>
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      ));
     });
 
     socket.on("infrastructure", (data) => {

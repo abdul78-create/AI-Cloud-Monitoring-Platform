@@ -31,6 +31,7 @@ const io = new Server(server, {
     credentials: true
   }
 });
+app.set("io", io);
 
 // Configure rate limiting to protect API endpoints in production
 const apiLimiter = rateLimit({

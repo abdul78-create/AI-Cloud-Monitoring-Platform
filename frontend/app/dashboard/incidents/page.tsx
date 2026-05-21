@@ -1,470 +1,509 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
-  AlertTriangle, CheckCircle2, Brain, Zap, Shield, Activity,
-  GitBranch, Filter, Search, Clock, Server, ChevronRight,
-  TrendingUp, RefreshCw, SlidersHorizontal, X
+  Zap, AlertTriangle, CheckCircle2, Clock, User, ArrowRight,
+  ChevronRight, Activity, Server, GitBranch, BrainCircuit,
+  Shield, RefreshCw, MoreHorizontal, Eye
 } from "lucide-react";
-import { useLiveEngineStore } from "@/hooks/useLiveEngine";
+import { api, unwrap } from "@/services/api";
+import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { toast } from "react-hot-toast";
 
-// ─── Types & Data ─────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Severity = "critical" | "high" | "medium" | "low";
-type Status = "active" | "investigating" | "mitigated" | "resolved";
+type IncidentSeverity = "warning" | "high" | "critical";
+type IncidentStatus   = "open" | "acknowledged" | "investigating" | "resolved";
 
 interface Incident {
   id: string;
   title: string;
-  service: string;
-  status: Status;
-  severity: Severity;
-  detectedAt: string;
-  durationMinutes: number;
-  outageProbability: number;
-  aiConfidence: number;
-  deployCorrelation?: { version: string; minutesBefore: number };
-  affectedCount: number;
-  summary: string;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
+  affectedServices: string[];
+  startedAt: Date;
+  acknowledgedAt: Date | null;
+  resolvedAt: Date | null;
+  assignedTo: string | null;
+  deploymentCorrelation: {
+    version: string;
+    confidence: number;
+    regressionSignal: string;
+  } | null;
+  aiSummary: string;
+  metrics: { peakCpu: number; peakMemory: number; peakLatency: number; errorRate: number };
 }
 
-const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: "inc-2024-001",
-    title: "Memory Leak — api-gateway",
-    service: "api-gateway",
-    status: "investigating",
-    severity: "high",
-    detectedAt: new Date(Date.now() - 7 * 60000).toISOString(),
-    durationMinutes: 7,
-    outageProbability: 34,
-    aiConfidence: 89,
-    deployCorrelation: { version: "v2.4.1", minutesBefore: 18 },
-    affectedCount: 3,
-    summary: "Heap growing at 2MB/min with no GC recovery. Pattern consistent with unclosed event listener in request handler.",
-  },
-  {
-    id: "inc-2024-002",
-    title: "DB Connection Pool Exhausted",
-    service: "db-primary",
-    status: "mitigated",
-    severity: "critical",
-    detectedAt: new Date(Date.now() - 2.5 * 3600000).toISOString(),
-    durationMinutes: 23,
-    outageProbability: 8,
-    aiConfidence: 94,
-    deployCorrelation: { version: "v2.4.0", minutesBefore: 31 },
-    affectedCount: 5,
-    summary: "Connection pool (20/20) fully saturated due to traffic surge +340% RPS. Long-running transactions held open.",
-  },
-  {
-    id: "inc-2024-003",
-    title: "CPU Saturation — worker-queue",
-    service: "worker-queue",
-    status: "resolved",
-    severity: "high",
-    detectedAt: new Date(Date.now() - 18 * 3600000).toISOString(),
-    durationMinutes: 12,
-    outageProbability: 3,
-    aiConfidence: 91,
-    affectedCount: 2,
-    summary: "Single worker thread at 87% CPU. Unbounded iteration in job queue caused request queue depth to grow.",
-  },
-  {
-    id: "inc-2024-004",
-    title: "P99 Latency SLA Breach — auth-service",
-    service: "auth-service",
-    status: "resolved",
-    severity: "medium",
-    detectedAt: new Date(Date.now() - 26 * 3600000).toISOString(),
-    durationMinutes: 8,
-    outageProbability: 2,
-    aiConfidence: 85,
-    deployCorrelation: { version: "v2.3.9", minutesBefore: 12 },
-    affectedCount: 2,
-    summary: "Redis cache miss storm caused 73% of latency in downstream calls. Cache stampede after keyspace invalidation.",
-  },
-  {
-    id: "inc-2024-005",
-    title: "Brute-Force Attack Detected",
-    service: "auth-service",
-    status: "resolved",
-    severity: "critical",
-    detectedAt: new Date(Date.now() - 48 * 3600000).toISOString(),
-    durationMinutes: 4,
-    outageProbability: 1,
-    aiConfidence: 97,
-    affectedCount: 1,
-    summary: "847 failed login attempts from 23 IPs in 4 minutes. Fail2Ban blocked 12 IPs. Credential stuffing pattern.",
-  },
-  {
-    id: "inc-2024-006",
-    title: "Disk Usage Critical — db-primary",
-    service: "db-primary",
-    status: "resolved",
-    severity: "medium",
-    detectedAt: new Date(Date.now() - 72 * 3600000).toISOString(),
-    durationMinutes: 31,
-    outageProbability: 2,
-    aiConfidence: 88,
-    affectedCount: 2,
-    summary: "WAL archive log accumulation caused disk to reach 91%. Automated cleanup removed 48GB of old WAL segments.",
-  },
-];
+// ─── Config ────────────────────────────────────────────────────────────────────
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const SEV = {
+  critical: { dot: "bg-red-500 animate-pulse", badge: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400", border: "border-l-red-500" },
+  high:     { dot: "bg-amber-500",              badge: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400", border: "border-l-amber-500" },
+  warning:  { dot: "bg-blue-400",               badge: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400", border: "border-l-blue-400" },
+};
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(diff / 3600000);
-  const d = Math.floor(diff / 86400000);
-  if (m < 2) return "just now";
-  if (m < 60) return `${m}m ago`;
-  if (h < 24) return `${h}h ago`;
-  return `${d}d ago`;
+const STATUS = {
+  open:          { label: "Open",          color: "text-red-600 dark:text-red-400" },
+  acknowledged:  { label: "Acknowledged",  color: "text-amber-600 dark:text-amber-400" },
+  investigating: { label: "Investigating", color: "text-blue-600 dark:text-blue-400" },
+  resolved:      { label: "Resolved",      color: "text-emerald-600 dark:text-emerald-400" },
+};
+
+function timeAgo(d: Date) {
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+  return `${Math.round(diff / 3600000)}h ago`;
 }
 
-const SEV_BADGE: Record<Severity, string> = {
-  critical: "badge-critical",
-  high:     "badge-warning",
-  medium:   "badge-live",
-  low:      "badge-success",
-};
+function duration(a: Date, b: Date | null) {
+  if (!b) return "Ongoing";
+  const diff = b.getTime() - a.getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 60) return `${m}m`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
 
-const STATUS_ICON: Record<Status, React.ElementType> = {
-  active:        AlertTriangle,
-  investigating: Brain,
-  mitigated:     Shield,
-  resolved:      CheckCircle2,
-};
+// ─── Main ──────────────────────────────────────────────────────────────────────
 
-const STATUS_COLOR: Record<Status, string> = {
-  active:        "var(--color-error)",
-  investigating: "var(--brand-600)",
-  mitigated:     "var(--color-warning)",
-  resolved:      "var(--color-success)",
-};
+type FilterStatus = "all" | IncidentStatus;
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function IncidentsPage() {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<FilterStatus>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-export default function IncidentIntelligencePage() {
-  const { incidents: liveIncidents } = useLiveEngineStore();
-  const [search, setSearch] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState<Severity | "all">("all");
-  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
-  const [showFilters, setShowFilters] = useState(false);
+  const socket = useMonitoringStore((state) => state.socket);
 
-  const activeCount   = MOCK_INCIDENTS.filter(i => i.status === "active" || i.status === "investigating").length;
-  const criticalCount = MOCK_INCIDENTS.filter(i => i.severity === "critical").length;
-  const mttr          = Math.round(MOCK_INCIDENTS.filter(i => i.status === "resolved").reduce((s, i) => s + i.durationMinutes, 0) / MOCK_INCIDENTS.filter(i => i.status === "resolved").length);
+  const fetchIncidents = async (isSilent = false) => {
+    try {
+      if (!isSilent) setLoading(true);
+      else setRefreshing(true);
+      const res = await api.get("/ops/incidents");
+      const data = unwrap<any[]>(res) || [];
+      const parsed = data.map((item: any) => ({
+        ...item,
+        startedAt: new Date(item.startedAt),
+        acknowledgedAt: item.acknowledgedAt ? new Date(item.acknowledgedAt) : null,
+        resolvedAt: item.resolvedAt ? new Date(item.resolvedAt) : null,
+        deploymentCorrelation: item.deploymentCorrelation ? {
+          ...item.deploymentCorrelation,
+          deployedAt: item.deploymentCorrelation.deployedAt ? new Date(item.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      }));
+      setIncidents(parsed);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching incidents:", err);
+      setError(err?.message || "Failed to load incidents");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const filtered = useMemo(() => {
-    return MOCK_INCIDENTS.filter(inc => {
-      const matchSearch = !search || inc.title.toLowerCase().includes(search.toLowerCase()) || inc.service.toLowerCase().includes(search.toLowerCase());
-      const matchSev    = filterSeverity === "all" || inc.severity === filterSeverity;
-      const matchStatus = filterStatus   === "all" || inc.status   === filterStatus;
-      return matchSearch && matchSev && matchStatus;
-    });
-  }, [search, filterSeverity, filterStatus]);
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onCreated = (newInc: any) => {
+      const parsed = {
+        ...newInc,
+        startedAt: new Date(newInc.startedAt),
+        acknowledgedAt: newInc.acknowledgedAt ? new Date(newInc.acknowledgedAt) : null,
+        resolvedAt: newInc.resolvedAt ? new Date(newInc.resolvedAt) : null,
+        deploymentCorrelation: newInc.deploymentCorrelation ? {
+          ...newInc.deploymentCorrelation,
+          deployedAt: newInc.deploymentCorrelation.deployedAt ? new Date(newInc.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => {
+        if (prev.some(i => i.id === parsed.id)) return prev.map(i => i.id === parsed.id ? parsed : i);
+        return [parsed, ...prev];
+      });
+    };
+
+    const onAcknowledged = (updatedInc: any) => {
+      const parsed = {
+        ...updatedInc,
+        startedAt: new Date(updatedInc.startedAt),
+        acknowledgedAt: updatedInc.acknowledgedAt ? new Date(updatedInc.acknowledgedAt) : null,
+        resolvedAt: updatedInc.resolvedAt ? new Date(updatedInc.resolvedAt) : null,
+        deploymentCorrelation: updatedInc.deploymentCorrelation ? {
+          ...updatedInc.deploymentCorrelation,
+          deployedAt: updatedInc.deploymentCorrelation.deployedAt ? new Date(updatedInc.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => prev.map(i => i.id === parsed.id ? parsed : i));
+    };
+
+    const onResolved = (updatedInc: any) => {
+      const parsed = {
+        ...updatedInc,
+        startedAt: new Date(updatedInc.startedAt),
+        acknowledgedAt: updatedInc.acknowledgedAt ? new Date(updatedInc.acknowledgedAt) : null,
+        resolvedAt: updatedInc.resolvedAt ? new Date(updatedInc.resolvedAt) : null,
+        deploymentCorrelation: updatedInc.deploymentCorrelation ? {
+          ...updatedInc.deploymentCorrelation,
+          deployedAt: updatedInc.deploymentCorrelation.deployedAt ? new Date(updatedInc.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => prev.map(i => i.id === parsed.id ? parsed : i));
+    };
+
+    const onUpdated = (updatedInc: any) => {
+      const parsed = {
+        ...updatedInc,
+        startedAt: new Date(updatedInc.startedAt),
+        acknowledgedAt: updatedInc.acknowledgedAt ? new Date(updatedInc.acknowledgedAt) : null,
+        resolvedAt: updatedInc.resolvedAt ? new Date(updatedInc.resolvedAt) : null,
+        deploymentCorrelation: updatedInc.deploymentCorrelation ? {
+          ...updatedInc.deploymentCorrelation,
+          deployedAt: updatedInc.deploymentCorrelation.deployedAt ? new Date(updatedInc.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => prev.map(i => i.id === parsed.id ? parsed : i));
+    };
+
+    socket.on("incident:created", onCreated);
+    socket.on("incident:acknowledged", onAcknowledged);
+    socket.on("incident:resolved", onResolved);
+    socket.on("incident:updated", onUpdated);
+
+    return () => {
+      socket.off("incident:created", onCreated);
+      socket.off("incident:acknowledged", onAcknowledged);
+      socket.off("incident:resolved", onResolved);
+      socket.off("incident:updated", onUpdated);
+    };
+  }, [socket]);
+
+  const handleAcknowledge = async (id: string) => {
+    try {
+      const res = await api.post(`/ops/incidents/${id}/acknowledge`, { by: "sre-lead@enterprise.com" });
+      const updated = unwrap<any>(res);
+      const parsed = {
+        ...updated,
+        startedAt: new Date(updated.startedAt),
+        acknowledgedAt: updated.acknowledgedAt ? new Date(updated.acknowledgedAt) : null,
+        resolvedAt: updated.resolvedAt ? new Date(updated.resolvedAt) : null,
+        deploymentCorrelation: updated.deploymentCorrelation ? {
+          ...updated.deploymentCorrelation,
+          deployedAt: updated.deploymentCorrelation.deployedAt ? new Date(updated.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => prev.map(i => i.id === id ? parsed : i));
+      toast.success(`Incident ${id} acknowledged.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to acknowledge incident");
+    }
+  };
+
+  const handleResolve = async (id: string) => {
+    try {
+      const res = await api.post(`/ops/incidents/${id}/resolve`, { by: "sre-lead@enterprise.com" });
+      const updated = unwrap<any>(res);
+      const parsed = {
+        ...updated,
+        startedAt: new Date(updated.startedAt),
+        acknowledgedAt: updated.acknowledgedAt ? new Date(updated.acknowledgedAt) : null,
+        resolvedAt: updated.resolvedAt ? new Date(updated.resolvedAt) : null,
+        deploymentCorrelation: updated.deploymentCorrelation ? {
+          ...updated.deploymentCorrelation,
+          deployedAt: updated.deploymentCorrelation.deployedAt ? new Date(updated.deploymentCorrelation.deployedAt) : undefined,
+        } : null,
+      };
+      setIncidents(prev => prev.map(i => i.id === id ? parsed : i));
+      toast.success(`Incident ${id} resolved.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resolve incident");
+    }
+  };
+
+  const filtered = incidents.filter(i => filter === "all" || i.status === filter);
+  const selected = incidents.find(i => i.id === selectedId);
+
+  const openCount     = incidents.filter(i => i.status === "open").length;
+  const activeCount   = incidents.filter(i => i.status !== "resolved").length;
+  const resolvedCount = incidents.filter(i => i.status === "resolved").length;
+  const criticalCount = incidents.filter(i => i.severity === "critical" && i.status !== "resolved").length;
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500 dark:text-slate-400">
+        <RefreshCw className="animate-spin mb-3 text-blue-600" size={32} />
+        <p className="text-sm font-semibold">Loading production incidents...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+        <AlertTriangle className="text-red-500 mx-auto mb-3" size={36} />
+        <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-1">Failed to Load Incidents</h3>
+        <p className="text-sm text-red-600 dark:text-red-300 mb-4">{error}</p>
+        <button
+          onClick={() => fetchIncidents()}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-2"
-            style={{ background: "var(--brand-50)", border: "1px solid var(--border-default)", color: "var(--brand-600)" }}
-          >
-            <Brain size={11} /> AI Incident Investigation Active
-          </div>
-          <h1 className="heading-page">Incident Intelligence</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
-            AI-powered root cause analysis, deployment correlation, and outage probability scoring.
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <Zap size={20} className="text-blue-600" />
+            Incident Management
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Triage, investigate, and resolve production incidents. Full timeline and AI RCA included.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-tertiary)" }}>
-          <RefreshCw size={11} className="animate-spin text-blue-500" />
-          <span>Syncing live</span>
+        <div className="flex items-center gap-2">
+          {criticalCount > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs font-semibold text-red-700 dark:text-red-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              {criticalCount} critical active
+            </div>
+          )}
+          <button
+            onClick={() => fetchIncidents(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Stat row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Incidents",   value: activeCount,   icon: AlertTriangle, color: "var(--color-error)" },
-          { label: "Critical",           value: criticalCount, icon: Shield,        color: "var(--color-warning)" },
-          { label: "Avg MTTR (min)",     value: mttr,          icon: Clock,         color: "var(--brand-600)" },
-          { label: "AI Confidence Avg",  value: "90%",         icon: Brain,         color: "var(--color-success)" },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon size={13} style={{ color }} />
-              <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>{label}</span>
-            </div>
-            <div className="text-2xl font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>{value}</div>
+          { label: "Total Active", value: activeCount, color: "text-slate-900 dark:text-white" },
+          { label: "Open / Unack'd", value: openCount, color: "text-red-600 dark:text-red-400" },
+          { label: "Investigating", value: incidents.filter(i => i.status === "investigating").length, color: "text-blue-600 dark:text-blue-400" },
+          { label: "Resolved Today", value: resolvedCount, color: "text-emerald-600 dark:text-emerald-400" },
+        ].map(s => (
+          <div key={s.label} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{s.label}</div>
+            <div className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
-          <input
-            type="text"
-            placeholder="Search incidents or services..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border"
-            style={{ background: "var(--surface-0)", borderColor: "var(--border-default)", color: "var(--text-primary)" }}
-          />
-        </div>
-        <button
-          onClick={() => setShowFilters(s => !s)}
-          className="btn btn-outlined flex items-center gap-2 text-sm"
-        >
-          <SlidersHorizontal size={13} />
-          Filters
-          {(filterSeverity !== "all" || filterStatus !== "all") && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          )}
-        </button>
+      {/* Filters */}
+      <div className="flex gap-1.5 flex-wrap">
+        {(["all", "open", "acknowledged", "investigating", "resolved"] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
+              filter === f
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            {f === "all" ? `All (${incidents.length})` : STATUS[f]?.label}
+          </button>
+        ))}
       </div>
 
-      {/* Filter panel */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="card p-4 overflow-hidden"
-          >
-            <div className="flex flex-wrap gap-4">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-2" style={{ color: "var(--text-tertiary)" }}>Severity</label>
-                <div className="flex gap-1.5">
-                  {(["all", "critical", "high", "medium", "low"] as const).map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setFilterSeverity(s)}
-                      className="px-2.5 py-1 rounded text-xs font-semibold border transition-colors"
-                      style={{
-                        background: filterSeverity === s ? "var(--brand-600)" : "var(--surface-1)",
-                        color: filterSeverity === s ? "#fff" : "var(--text-secondary)",
-                        borderColor: filterSeverity === s ? "var(--brand-600)" : "var(--border-default)",
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wide block mb-2" style={{ color: "var(--text-tertiary)" }}>Status</label>
-                <div className="flex gap-1.5">
-                  {(["all", "active", "investigating", "mitigated", "resolved"] as const).map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setFilterStatus(s)}
-                      className="px-2.5 py-1 rounded text-xs font-semibold border transition-colors"
-                      style={{
-                        background: filterStatus === s ? "var(--brand-600)" : "var(--surface-1)",
-                        color: filterStatus === s ? "#fff" : "var(--text-secondary)",
-                        borderColor: filterStatus === s ? "var(--brand-600)" : "var(--border-default)",
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={() => { setFilterSeverity("all"); setFilterStatus("all"); }}
-                className="ml-auto flex items-center gap-1 text-xs"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                <X size={11} /> Clear
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Two-column layout: incidents list + AI workflow */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        {/* Incidents list */}
-        <div className="lg:col-span-2 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="heading-section">{filtered.length} Incidents</h3>
-          </div>
-
+      <div className={`grid gap-6 ${selectedId ? "xl:grid-cols-2" : "grid-cols-1"}`}>
+        {/* Incident list */}
+        <div className="space-y-3">
           <AnimatePresence>
             {filtered.map((inc, i) => {
-              const StatusIcon = STATUS_ICON[inc.status];
-              const isActive = inc.status === "active" || inc.status === "investigating";
+              const sev = SEV[inc.severity];
+              const stat = STATUS[inc.status];
+              const isSelected = selectedId === inc.id;
+
               return (
                 <motion.div
                   key={inc.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ delay: i * 0.04 }}
+                  className={`bg-white dark:bg-slate-900 rounded-xl border border-l-4 shadow-sm overflow-hidden cursor-pointer transition-all ${sev.border} ${isSelected ? "border-blue-400 dark:border-blue-500" : "border-slate-200 dark:border-slate-800"}`}
+                  onClick={() => setSelectedId(isSelected ? null : inc.id)}
                 >
-                  <Link href={`/dashboard/incidents/${inc.id}`}>
-                    <div
-                      className="card p-4 cursor-pointer transition-all duration-150 group"
-                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-strong)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-default)"; }}
-                      style={{ borderLeft: isActive ? `3px solid ${STATUS_COLOR[inc.status]}` : undefined }}
-                    >
-                      {/* Row 1: title + severity + status */}
-                      <div className="flex items-start gap-2.5 mb-2">
-                        <div
-                          className="p-1.5 rounded-md flex-shrink-0 mt-0.5"
-                          style={{ background: isActive ? "var(--color-error-bg)" : "var(--surface-2)", color: STATUS_COLOR[inc.status] }}
-                        >
-                          <StatusIcon size={12} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{inc.title}</span>
-                            <span className={`badge ${SEV_BADGE[inc.severity]} text-[9px]`}>{inc.severity.toUpperCase()}</span>
-                          </div>
-                          <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--text-secondary)" }}>{inc.summary}</p>
-                        </div>
-                        <ChevronRight size={14} className="flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} />
-                      </div>
-
-                      {/* Row 2: metadata badges */}
-                      <div className="flex flex-wrap items-center gap-2 ml-8">
-                        <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                          <Server size={9} /> {inc.service}
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                          <Clock size={9} /> {relativeTime(inc.detectedAt)} · {inc.durationMinutes}m
-                        </span>
-                        <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                          <Activity size={9} /> {inc.affectedCount} services
-                        </span>
-
-                        {/* Deployment correlation */}
-                        {inc.deployCorrelation && (
-                          <span className="flex items-center gap-1 text-[10px] badge badge-info">
-                            <GitBranch size={9} /> {inc.deployCorrelation.version} · {inc.deployCorrelation.minutesBefore}m before
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${sev.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className="text-[11px] font-mono font-semibold text-slate-400">{inc.id}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${sev.badge}`}>
+                            {inc.severity.toUpperCase()}
                           </span>
-                        )}
-
-                        {/* Outage probability */}
-                        <span
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded ml-auto"
-                          style={{
-                            background: inc.outageProbability > 40 ? "var(--color-error-bg)" : inc.outageProbability > 20 ? "var(--color-warning-bg)" : "var(--color-success-bg)",
-                            color: inc.outageProbability > 40 ? "var(--color-error)" : inc.outageProbability > 20 ? "var(--color-warning)" : "var(--color-success)",
-                          }}
-                        >
-                          <TrendingUp size={8} className="inline mr-0.5" />
-                          {inc.outageProbability}% outage risk
-                        </span>
-                      </div>
-
-                      {/* AI summary highlight for active incidents */}
-                      {isActive && (
-                        <div
-                          className="mt-3 ml-8 p-3 rounded-lg"
-                          style={{ background: "var(--brand-50)", border: "1px solid var(--border-default)" }}
-                        >
-                          <p className="text-[10px] font-bold flex items-center gap-1 mb-1" style={{ color: "var(--brand-600)" }}>
-                            <Zap size={9} /> AI Root Cause · {inc.aiConfidence}% confidence
-                          </p>
-                          <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{inc.summary}</p>
+                          <span className={`text-[11px] font-semibold ${stat.color}`}>{stat.label}</span>
                         </div>
-                      )}
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug mb-2">{inc.title}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1"><Clock size={11} />{timeAgo(inc.startedAt)}</span>
+                          <span className="flex items-center gap-1"><Activity size={11} />Duration: {duration(inc.startedAt, inc.resolvedAt)}</span>
+                          {inc.assignedTo && <span className="flex items-center gap-1"><User size={11} />{inc.assignedTo.split("@")[0]}</span>}
+                          {inc.deploymentCorrelation && (
+                            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                              <GitBranch size={11} />{inc.deploymentCorrelation.version} ({inc.deploymentCorrelation.confidence}% confidence)
+                            </span>
+                          )}
+                        </div>
+                        {/* Affected services */}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {inc.affectedServices.slice(0, 3).map(svc => (
+                            <span key={svc} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
+                              {svc.split(".")[0]}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+                        {inc.status === "open" && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleAcknowledge(inc.id); }}
+                            className="px-2.5 py-1 text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-colors border border-amber-200 dark:border-amber-800"
+                          >
+                            Acknowledge
+                          </button>
+                        )}
+                        {inc.status !== "resolved" && inc.status !== "open" && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleResolve(inc.id); }}
+                            className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200 dark:border-emerald-800"
+                          >
+                            Resolve
+                          </button>
+                        )}
+                        <Link
+                          href={`/dashboard/incidents/${inc.id}`}
+                          onClick={e => e.stopPropagation()}
+                          className="px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                        >
+                          <Eye size={11} /> Details
+                        </Link>
+                      </div>
                     </div>
-                  </Link>
+                  </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
 
           {filtered.length === 0 && (
-            <div className="card p-12 text-center">
-              <CheckCircle2 size={28} className="mx-auto mb-3 text-green-500" />
-              <p className="font-semibold" style={{ color: "var(--text-primary)" }}>No incidents match your filters</p>
-              <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>All clear — try adjusting the filters above</p>
+            <div className="text-center py-16 text-sm text-slate-400">
+              <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-400" />
+              No incidents matching this filter.
             </div>
           )}
         </div>
 
-        {/* Right panel: AI Workflow + Outage Probability */}
-        <div className="space-y-4">
-          {/* AI Engine workflow */}
-          <div className="card p-5">
-            <h3 className="heading-section mb-1">AI Analysis Engine</h3>
-            <p className="text-xs mb-4" style={{ color: "var(--text-tertiary)" }}>How the correlation engine works</p>
-            <div className="space-y-4">
-              {[
-                { step: 1, title: "Detect & Correlate",   desc: "Cluster alerts into cascading failure trees using temporal proximity" },
-                { step: 2, title: "Trace Root Cause",      desc: "Correlate metric anomalies, logs, and deployments with σ-based scoring" },
-                { step: 3, title: "Score Probability",     desc: "Weighted outage probability model using 4 signal factors" },
-                { step: 4, title: "Suggest Playbook",      desc: "Pattern-matched remediation steps with copy-paste commands" },
-              ].map(s => (
-                <div key={s.step} className="flex gap-3">
-                  <div
-                    className="h-6 w-6 rounded-full flex items-center justify-center font-bold text-[10px] flex-shrink-0"
-                    style={{ background: "var(--brand-50)", color: "var(--brand-600)", border: "1px solid var(--border-default)" }}
-                  >
-                    {s.step}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{s.title}</p>
-                    <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>{s.desc}</p>
-                  </div>
+        {/* Incident detail panel */}
+        <AnimatePresence>
+          {selected && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden self-start sticky top-4"
+            >
+              {/* Panel header */}
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-semibold text-slate-400">{selected.id}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${SEV[selected.severity].badge}`}>
+                    {selected.severity.toUpperCase()}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
+                <Link href={`/dashboard/incidents/${selected.id}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                  Full details <ArrowRight size={11} />
+                </Link>
+              </div>
 
-          {/* Outage probability mini-leaderboard */}
-          <div className="card p-5">
-            <h3 className="heading-section mb-3">Service Risk Scores</h3>
-            <div className="space-y-2">
-              {[
-                { name: "worker-queue",  risk: 61 },
-                { name: "api-gateway",   risk: 34 },
-                { name: "ml-inference",  risk: 28 },
-                { name: "auth-service",  risk: 14 },
-                { name: "db-primary",    risk: 8 },
-                { name: "cache-redis",   risk: 4 },
-              ].map(s => (
-                <div key={s.name}>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{s.name}</span>
-                    <span
-                      className="text-[10px] font-bold tabular-nums"
-                      style={{ color: s.risk > 50 ? "#ef4444" : s.risk > 25 ? "#f59e0b" : "#22c55e" }}
-                    >
-                      {s.risk}%
-                    </span>
-                  </div>
-                  <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${s.risk}%` }}
-                      transition={{ duration: 0.6, delay: 0.1 }}
-                      style={{ background: s.risk > 50 ? "#ef4444" : s.risk > 25 ? "#f59e0b" : "#22c55e" }}
-                    />
-                  </div>
+              <div className="p-4 space-y-5">
+                {/* Title */}
+                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug">{selected.title}</p>
+
+                {/* Metrics */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Peak CPU", value: `${selected.metrics.peakCpu}%`, alert: selected.metrics.peakCpu > 80 },
+                    { label: "Peak Memory", value: `${selected.metrics.peakMemory}%`, alert: selected.metrics.peakMemory > 85 },
+                    { label: "Peak Latency", value: `${selected.metrics.peakLatency}ms`, alert: selected.metrics.peakLatency > 1000 },
+                    { label: "Error Rate", value: `${selected.metrics.errorRate}%`, alert: selected.metrics.errorRate > 5 },
+                  ].map(m => (
+                    <div key={m.label} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500">{m.label}</div>
+                      <div className={`text-base font-bold tabular-nums ${m.alert ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"}`}>{m.value}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
+
+                {/* AI Summary */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <BrainCircuit size={13} className="text-blue-600" />
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Root Cause Analysis</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-3">
+                    {selected.aiSummary}
+                  </p>
+                </div>
+
+                {/* Deployment correlation */}
+                {selected.deploymentCorrelation && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <GitBranch size={13} className="text-amber-600" />
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Deployment Correlation</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">{selected.deploymentCorrelation.version}</span>
+                        <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                          {selected.deploymentCorrelation.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">{selected.deploymentCorrelation.regressionSignal}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick actions */}
+                <div className="flex gap-2 pt-1">
+                  {selected.status === "open" && (
+                    <button onClick={() => handleAcknowledge(selected.id)} className="flex-1 py-2 text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 transition-colors border border-amber-200 dark:border-amber-800">
+                      Acknowledge
+                    </button>
+                  )}
+                  {selected.status !== "resolved" && (
+                    <button onClick={() => handleResolve(selected.id)} className="flex-1 py-2 text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200 dark:border-emerald-800">
+                      Mark Resolved
+                    </button>
+                  )}
+                  <Link href={`/dashboard/incidents/${selected.id}`} className="flex-1 py-2 text-xs font-semibold text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    View Timeline →
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

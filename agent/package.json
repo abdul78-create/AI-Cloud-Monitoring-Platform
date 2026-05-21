@@ -1,0 +1,19 @@
+{
+  "name": "cloudai-monitoring-agent",
+  "version": "2.4.1",
+  "description": "CloudAI Monitor — Lightweight infrastructure monitoring agent",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "start:local": "node agent.js --endpoint=http://localhost:5000",
+    "start:prod": "node agent.js --endpoint=https://your-backend.onrender.com"
+  },
+  "dependencies": {
+    "systeminformation": "^5.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["monitoring", "agent", "telemetry", "observability", "cloudai"],
+  "license": "MIT"
+}
