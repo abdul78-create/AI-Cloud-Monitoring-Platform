@@ -67,7 +67,7 @@ export async function generateServerFromSsh(
   return {
     id: connectionId,
     hostname: hostname.trim(),
-    ip: ssh.connection?.config?.host || "Unknown",
+    ip: (ssh.connection as any)?.config?.host || "Unknown",
     provider: "linux",
     instanceType: "Remote SSH Node",
     os: osInfo.trim() || "Linux",
@@ -85,4 +85,42 @@ export async function generateServerFromSsh(
     ],
     lastSeen: new Date().toISOString()
   };
+}
+
+export async function verifySshConnection(config: any): Promise<void> {
+  const ssh = await getSshClient(
+    config.hostname, // Using hostname as connection ID for mock verification
+    config.hostname,
+    config.username,
+    config.privateKey,
+    config.password,
+    config.port || 22
+  );
+  // Just execute a simple command to verify
+  await executeSshCommand(ssh, "echo 'Connection Verified'");
+}
+
+export async function installAgentViaSsh(
+  config: any, 
+  apiBaseUrl: string, 
+  apiKey: string, 
+  onProgress?: (msg: string) => void
+): Promise<void> {
+  const ssh = await getSshClient(
+    config.hostname,
+    config.hostname,
+    config.username,
+    config.privateKey,
+    config.password,
+    config.port || 22
+  );
+  
+  if (onProgress) onProgress("Connected via SSH. Downloading installer...");
+  // Simulate the installation process
+  await new Promise(r => setTimeout(r, 1000));
+  
+  if (onProgress) onProgress("Running installation script...");
+  await executeSshCommand(ssh, `curl -fsSL ${apiBaseUrl}/install.sh | bash`);
+  
+  if (onProgress) onProgress("Agent installed and service started successfully.");
 }

@@ -28,7 +28,7 @@ export const agentRouter = Router();
 agentRouter.post("/heartbeat", asyncHandler(async (req: Request, res: Response) => {
   const result = HeartbeatSchema.safeParse(req.body);
   if (!result.success) {
-    res.status(400).json({ success: false, message: "Invalid payload", errors: result.error.errors });
+    res.status(400).json({ success: false, message: "Invalid payload", errors: result.error.issues });
     return;
   }
   const payload = result.data as AgentHeartbeat;
