@@ -50,6 +50,9 @@ router.post("/trigger", async (req, res) => {
         metric: "cpu",
         state: "firing",
         firedAt: new Date(),
+        resolvedAt: null,
+        escalationLevel: 0,
+        acknowledgedBy: null,
         channels: ["slack"]
       });
     }, 5000);
@@ -94,6 +97,9 @@ router.post("/trigger", async (req, res) => {
       metric: "memory",
       state: "firing",
       firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 0,
+      acknowledgedBy: null,
       channels: ["slack"]
     });
 
