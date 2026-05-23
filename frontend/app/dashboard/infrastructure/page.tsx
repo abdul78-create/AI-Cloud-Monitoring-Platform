@@ -387,9 +387,9 @@ export default function RealInfrastructurePage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 card p-8 text-center border-dashed border-2 bg-slate-50 dark:bg-slate-900/50 flex flex-col justify-center items-center">
                   <Server size={48} className="text-slate-400 mb-4 animate-pulse" />
-                  <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">No Connected Monitoring Agents</h2>
+                  <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">No infrastructure connected yet.</h2>
                   <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
-                    Connect a real Linux or local daemon script using our lightweight system telemetry daemon.
+                    Connect your first server to begin live telemetry analysis.
                   </p>
                   <div className="w-full text-left bg-slate-900 text-slate-300 p-4 rounded-xl font-mono text-xs max-w-xl overflow-x-auto border border-slate-800">
                     <p className="text-slate-500 mb-2"># Install CloudAI daemon agent</p>

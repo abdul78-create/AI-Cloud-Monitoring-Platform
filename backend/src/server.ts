@@ -10,7 +10,9 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { HttpError } from "./utils/httpError";
 import { startTelemetryBroadcaster } from "./services/telemetryBroadcaster";
+import { initTelemetryWorker } from "./services/telemetryWorker";
 import { startAgentStatusSweeper } from "./routes/opsRoutes";
+import { installerRoutes } from "./routes/installerRoutes";
 
 // Global process safeguards to prevent crash on Redis socket errors or other unhandled issues
 process.on("uncaughtException", (err) => {
@@ -71,6 +73,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 app.use("/api", apiLimiter, apiRoutes);
+app.use("/", installerRoutes);
 
 
 app.use((_req: Request, _res: Response, next: NextFunction) => {
@@ -98,6 +101,9 @@ startTelemetryBroadcaster(io);
 
 // Start background agent status sweeper to monitor heartbeat intervals
 startAgentStatusSweeper(io);
+
+// Initialize BullMQ worker for real telemetry processing
+initTelemetryWorker(io);
 
 // Export io instance to use in services
 export { io };

@@ -8,59 +8,59 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ──────────────────────────────────────────────────────────────
-   Design Tokens — Light Mode (Google Cloud Console aesthetic)
+   Design Tokens — Light Mode (Premium Enterprise SaaS)
 ────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
 
-  /* ── Surfaces (Google Material 3) ── */
+  /* ── Surfaces (Clean White / Zinc) ── */
   --surface-0: #ffffff;
-  --surface-1: #f8f9fa;
-  --surface-2: #f1f3f4;
-  --surface-3: #e8eaed;
+  --surface-1: #fafafa;
+  --surface-2: #f4f4f5;
+  --surface-3: #e4e4e7;
   --surface-elevated: #ffffff;
 
   /* ── Borders ── */
-  --border-default: #dadce0;
-  --border-strong:  #bdc1c6;
-  --border-subtle:  #f1f3f4;
+  --border-default: #e4e4e7;
+  --border-strong:  #d4d4d8;
+  --border-subtle:  #f4f4f5;
 
   /* ── Text ── */
-  --text-primary:   #202124;
-  --text-secondary: #5f6368;
-  --text-tertiary:  #80868b;
-  --text-disabled:  #bdc1c6;
+  --text-primary:   #09090b;
+  --text-secondary: #71717a;
+  --text-tertiary:  #a1a1aa;
+  --text-disabled:  #d4d4d8;
   --text-on-brand:  #ffffff;
 
-  /* ── Brand — Google Blue ── */
-  --brand-50:   #e8f0fe;
-  --brand-100:  #d2e3fc;
-  --brand-500:  #4285f4;
-  --brand-600:  #1a73e8;
-  --brand-700:  #1557b0;
-  --brand-800:  #0d47a1;
+  /* ── Brand — Subtle Blue Accent ── */
+  --brand-50:   #eff6ff;
+  --brand-100:  #dbeafe;
+  --brand-500:  #3b82f6;
+  --brand-600:  #2563eb;
+  --brand-700:  #1d4ed8;
+  --brand-800:  #1e40af;
 
-  /* ── Semantic Status Colors ── */
-  --color-success:       #34a853;   /* Google Green */
-  --color-success-bg:    #e6f4ea;
-  --color-success-border:#ceead6;
-  --color-warning:       #f9ab00;   /* Google Yellow */
-  --color-warning-bg:    #fef7e0;
-  --color-warning-border:#fce8b2;
-  --color-error:         #ea4335;   /* Google Red */
-  --color-error-bg:      #fce8e6;
-  --color-error-border:  #f5c6c2;
-  --color-info:          #4285f4;   /* Google Blue */
-  --color-info-bg:       #e8f0fe;
-  --color-info-border:   #d2e3fc;
-  --color-critical:      #d93025;   /* Darker red for critical */
-  --color-critical-bg:   #fce8e6;
+  /* ── Semantic Status Colors (Muted) ── */
+  --color-success:       #16a34a;
+  --color-success-bg:    #f0fdf4;
+  --color-success-border:#dcfce7;
+  --color-warning:       #d97706;
+  --color-warning-bg:    #fffbeb;
+  --color-warning-border:#fef3c7;
+  --color-error:         #dc2626;
+  --color-error-bg:      #fef2f2;
+  --color-error-border:  #fee2e2;
+  --color-info:          #2563eb;
+  --color-info-bg:       #eff6ff;
+  --color-info-border:   #dbeafe;
+  --color-critical:      #b91c1c;
+  --color-critical-bg:   #fef2f2;
 
-  /* ── Elevation (Google Material 3) ── */
-  --shadow-1: 0 1px 2px rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15);
-  --shadow-2: 0 1px 2px rgba(60,64,67,0.30), 0 2px 6px 2px rgba(60,64,67,0.15);
-  --shadow-3: 0 4px 8px 3px rgba(60,64,67,0.15), 0 1px 3px rgba(60,64,67,0.30);
-  --shadow-4: 0 6px 10px 4px rgba(60,64,67,0.15), 0 2px 3px rgba(60,64,67,0.30);
+  /* ── Elevation (Extremely Soft) ── */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-3: 0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03);
+  --shadow-4: 0 24px 48px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
 
   /* ── Typography Scale ── */
   --font-sans:  'Inter', 'Google Sans', system-ui, -apple-system, sans-serif;
@@ -100,58 +100,58 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Design Tokens — Dark Mode (Google Cloud Console dark theme)
+   Design Tokens — Dark Mode (Premium Enterprise SaaS)
 ────────────────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
 
-  /* ── Surfaces ── */
-  --surface-0:       #1a1c1e;
-  --surface-1:       #1e2124;
-  --surface-2:       #25282c;
-  --surface-3:       #2d3135;
-  --surface-elevated:#202429;
+  /* ── Surfaces (Deep Zinc) ── */
+  --surface-0:       #09090b;
+  --surface-1:       #121214;
+  --surface-2:       #18181b;
+  --surface-3:       #27272a;
+  --surface-elevated:#121214;
 
   /* ── Borders ── */
-  --border-default:  rgba(255,255,255,0.10);
-  --border-strong:   rgba(255,255,255,0.18);
-  --border-subtle:   rgba(255,255,255,0.05);
+  --border-default:  #27272a;
+  --border-strong:   #3f3f46;
+  --border-subtle:   #18181b;
 
   /* ── Text ── */
-  --text-primary:   #e8eaed;
-  --text-secondary: #9aa0a6;
-  --text-tertiary:  #6e7579;
-  --text-disabled:  #3c4043;
+  --text-primary:   #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary:  #71717a;
+  --text-disabled:  #3f3f46;
   --text-on-brand:  #ffffff;
 
-  /* ── Brand ── */
-  --brand-50:  rgba(66,133,244,0.12);
-  --brand-100: rgba(66,133,244,0.20);
-  --brand-500: #8ab4f8;
-  --brand-600: #669df6;
-  --brand-700: #4285f4;
+  /* ── Brand (Subtle Blue) ── */
+  --brand-50:  rgba(59, 130, 246, 0.1);
+  --brand-100: rgba(59, 130, 246, 0.15);
+  --brand-500: #60a5fa;
+  --brand-600: #3b82f6;
+  --brand-700: #2563eb;
 
-  /* ── Semantic Status Colors (dark adjusted) ── */
-  --color-success:       #81c995;
-  --color-success-bg:    rgba(52,168,83,0.12);
-  --color-success-border:rgba(52,168,83,0.25);
-  --color-warning:       #fdd663;
-  --color-warning-bg:    rgba(249,171,0,0.12);
-  --color-warning-border:rgba(249,171,0,0.25);
-  --color-error:         #f28b82;
-  --color-error-bg:      rgba(234,67,53,0.12);
-  --color-error-border:  rgba(234,67,53,0.25);
-  --color-info:          #8ab4f8;
-  --color-info-bg:       rgba(66,133,244,0.12);
-  --color-info-border:   rgba(66,133,244,0.25);
-  --color-critical:      #f28b82;
-  --color-critical-bg:   rgba(234,67,53,0.15);
+  /* ── Semantic Status Colors (Dark Muted) ── */
+  --color-success:       #4ade80;
+  --color-success-bg:    rgba(74, 222, 128, 0.1);
+  --color-success-border:rgba(74, 222, 128, 0.2);
+  --color-warning:       #fbbf24;
+  --color-warning-bg:    rgba(251, 191, 36, 0.1);
+  --color-warning-border:rgba(251, 191, 36, 0.2);
+  --color-error:         #f87171;
+  --color-error-bg:      rgba(248, 113, 113, 0.1);
+  --color-error-border:  rgba(248, 113, 113, 0.2);
+  --color-info:          #60a5fa;
+  --color-info-bg:       rgba(96, 165, 250, 0.1);
+  --color-info-border:   rgba(96, 165, 250, 0.2);
+  --color-critical:      #ef4444;
+  --color-critical-bg:   rgba(239, 68, 68, 0.15);
 
-  /* ── Elevation (dark — subtler shadows, more opacity) ── */
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.60), 0 1px 3px 1px rgba(0,0,0,0.40);
-  --shadow-2: 0 1px 2px rgba(0,0,0,0.60), 0 2px 6px 2px rgba(0,0,0,0.40);
-  --shadow-3: 0 4px 8px 3px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.60);
-  --shadow-4: 0 6px 10px 4px rgba(0,0,0,0.40), 0 2px 3px rgba(0,0,0,0.60);
+  /* ── Elevation (Dark shadows) ── */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 12px 24px rgba(0, 0, 0, 0.8);
+  --shadow-4: 0 24px 48px rgba(0, 0, 0, 0.9);
 
   /* ── Legacy compat ── */
   --bg-primary:   var(--surface-0);
@@ -347,7 +347,7 @@ body {
    Typography
 ────────────────────────────────────────────────────────────── */
 .text-gradient {
-  background: linear-gradient(135deg, var(--brand-500) 0%, #8b5cf6 100%);
+  background: var(--text-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

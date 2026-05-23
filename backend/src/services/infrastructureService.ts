@@ -7,6 +7,9 @@
  * production SaaS (Datadog / New Relic style).
  */
 
+import { getDockerClient, pingDocker, generateServerFromDocker } from "./dockerService";
+import { getSshClient, generateServerFromSsh } from "./sshService";
+
 // ─── Type Definitions ─────────────────────────────────────────────────────────
 
 export interface ProcessInfo {
@@ -401,19 +404,53 @@ export function getServerServices(serverId: string): ServiceInfo[] {
 }
 
 /**
- * Simulates a connection attempt.
- * In demo mode this always succeeds after a short delay.
- * Returns details suitable for the wizard Step 2 → 3 transition.
+ * Initiates a real connection (if docker/linux) or simulated connection (if aws/kubernetes).
  */
 export async function simulateConnection(config: ConnectionConfig): Promise<ConnectionResult> {
-  // Validate that the provider is specified
   if (!config.provider) {
     throw new Error("provider is required");
   }
 
-  // Simulate network latency (1.2s – 1.8s)
-  const latencyMs = 1200 + Math.floor(Math.random() * 600);
-  await new Promise((resolve) => setTimeout(resolve, latencyMs));
+  const startTime = Date.now();
+  const connectionId = `conn-${Date.now().toString(36)}`;
+
+  let connected = false;
+  let serversFound = 0;
+
+  try {
+    if (config.provider === "docker") {
+      const docker = getDockerClient(connectionId, config.dockerHost, config.port);
+      connected = await pingDocker(docker);
+      if (connected) {
+        const server = await generateServerFromDocker(connectionId, docker, "local");
+        MOCK_SERVERS.push(server); // Add to our list dynamically
+        serversFound = 1;
+      }
+    } else if (config.provider === "linux") {
+      const ssh = await getSshClient(
+        connectionId,
+        config.hostname || "localhost",
+        config.username || "root",
+        config.privateKey,
+        config.password,
+        config.port || 22
+      );
+      if (ssh.isConnected()) {
+        connected = true;
+        const server = await generateServerFromSsh(connectionId, ssh, config.region || "us-east-1");
+        MOCK_SERVERS.push(server);
+        serversFound = 1;
+      }
+    } else {
+      // Simulate network latency (1.2s – 1.8s)
+      await new Promise((resolve) => setTimeout(resolve, 1200 + Math.floor(Math.random() * 600)));
+      connected = true;
+      serversFound = MOCK_SERVERS.filter((s) => s.provider === config.provider).length || 4;
+    }
+  } catch (err: any) {
+    console.error("Connection failed:", err.message);
+    connected = false;
+  }
 
   const regionMap: Record<string, string> = {
     aws:        config.region  ?? "us-east-1",
@@ -423,12 +460,12 @@ export async function simulateConnection(config: ConnectionConfig): Promise<Conn
   };
 
   return {
-    connected:    true,
-    serversFound: MOCK_SERVERS.filter((s) => s.provider === config.provider).length || 4,
-    connectionId: `conn-${Date.now().toString(36)}`,
+    connected,
+    serversFound,
+    connectionId,
     provider:     config.provider,
     region:       regionMap[config.provider] ?? "us-east-1",
-    latencyMs,
+    latencyMs: Date.now() - startTime,
   };
 }
 

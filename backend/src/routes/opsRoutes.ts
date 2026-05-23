@@ -2,14 +2,16 @@ import { Router, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   getAllAlerts, getAlertById, acknowledgeAlert, resolveAlert, suppressAlert, getRules,
-  evaluateThresholds, triggerAgentOfflineAlert, resolveAgentOfflineAlert
+  triggerAgentOfflineAlert, resolveAgentOfflineAlert
 } from "../services/alertEngineService";
+import { enqueueTelemetry } from "../services/telemetryWorker";
 import {
   getAllIncidents, getIncidentById, acknowledgeIncident, resolveIncident,
   addTimelineEvent, getAllDeployments
 } from "../services/incidentTimelineService";
 import path from "path";
 import fs from "fs";
+import { z } from "zod";
 import { verifySshConnection, installAgentViaSsh } from "../services/sshService";
 
 export const opsRoutes = Router();
@@ -140,13 +142,32 @@ export interface AgentHeartbeat {
 
 export const agentRegistry = new Map<string, { heartbeat: AgentHeartbeat; lastSeen: Date; status: string }>();
 
+const HeartbeatSchema = z.object({
+  agentId: z.string().min(1),
+  hostname: z.string().min(1),
+  ip: z.string(),
+  version: z.string(),
+  metrics: z.object({
+    cpu: z.number().min(0).max(100),
+    memory: z.number().min(0).max(100),
+    disk: z.number().min(0).max(100),
+    networkIn: z.number().optional(),
+    networkOut: z.number().optional(),
+    networkInBytes: z.number().optional(),
+    networkOutBytes: z.number().optional(),
+    uptime: z.number().optional()
+  }).passthrough().optional(),
+  processes: z.array(z.any()).optional()
+});
+
 /** POST /api/ops/agent/heartbeat — receive heartbeat from monitoring agent */
 opsRoutes.post("/agent/heartbeat", asyncHandler(async (req: Request, res: Response) => {
-  const payload = req.body as AgentHeartbeat;
-  if (!payload.agentId || !payload.hostname) {
-    res.status(400).json({ success: false, message: "agentId and hostname required" });
+  const result = HeartbeatSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ success: false, message: "Invalid payload", errors: result.error.errors });
     return;
   }
+  const payload = result.data as AgentHeartbeat;
   
   const existing = agentRegistry.get(payload.agentId);
   const wasOffline = existing?.status === "offline";
@@ -178,7 +199,7 @@ opsRoutes.post("/agent/heartbeat", asyncHandler(async (req: Request, res: Respon
       disk: payload.metrics.disk,
       latency: 0 // Server metrics don't have default API latency, we keep it 0
     };
-    evaluateThresholds(metricsToEval, payload.hostname, io);
+    enqueueTelemetry(payload.hostname, metricsToEval, true).catch(err => console.error("BullMQ Enqueue Error:", err));
     
     // Broadcast live telemetry data over socket
     if (io) {

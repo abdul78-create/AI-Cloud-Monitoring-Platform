@@ -10,7 +10,7 @@ import { useMonitoringStore } from "@/store/useMonitoringStore";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 
-type Tab = "account" | "notifications" | "thresholds" | "apikeys" | "team";
+type Tab = "account" | "billing" | "notifications" | "thresholds" | "apikeys" | "team";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useMonitoringStore();
   const [activeTab, setActiveTab] = useState<Tab>("account");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isStripeLoading, setIsStripeLoading] = useState(false);
 
   /* ── State for notifications ── */
   const [slackUrl, setSlackUrl] = useState("https://example.com/services/T00000000/B00000000/mock_slack_webhook");
@@ -61,6 +62,16 @@ export default function SettingsPage() {
         setSaveSuccess(false);
         toast.success("Settings saved successfully!");
       }, 1200);
+    });
+  };
+
+  const handleUpgradeStripe = () => {
+    checkGuestMode(() => {
+      setIsStripeLoading(true);
+      setTimeout(() => {
+        setIsStripeLoading(false);
+        toast.success("Redirecting to Stripe Checkout...");
+      }, 1500);
     });
   };
 
@@ -130,6 +141,7 @@ export default function SettingsPage() {
         >
           {[
             { id: "account",       label: "Account",       icon: User },
+            { id: "billing",       label: "Billing & Plans", icon: Zap },
             { id: "notifications", label: "Notifications", icon: Bell },
             { id: "thresholds",    label: "Alert Rules",   icon: Sliders },
             { id: "apikeys",       label: "API Access",    icon: Key },
@@ -248,6 +260,100 @@ export default function SettingsPage() {
                         <Moon size={13} />
                         Dark
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ──────────────────────────────────────────────────
+                  1.5 BILLING & PLANS TAB
+              ────────────────────────────────────────────────── */}
+              {activeTab === "billing" && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="heading-section">Billing & Plans</h3>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                      Manage your subscription, usage limits, and retention policies
+                    </p>
+                  </div>
+
+                  <div className="card p-5" style={{ background: "var(--surface-1)", borderColor: "var(--border-default)" }}>
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Current Plan: Free Tier</h4>
+                        <p className="text-xs text-slate-500 mt-1">Free for developers. Upgrade for extended retention and AI features.</p>
+                      </div>
+                      <span className="badge badge-success text-[10px]">ACTIVE</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">Data Retention (7 Days)</span>
+                          <span className="text-slate-500">2 Days Used</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full" style={{ width: "28%" }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">Telemetry Ingestion (50GB)</span>
+                          <span className="text-slate-500">12GB Used</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full" style={{ width: "24%" }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Free Plan */}
+                    <div className="card p-5 border-2 border-transparent bg-[var(--surface-1)]">
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">Free</h4>
+                      <p className="text-xs text-slate-500 mb-4">For individuals and small projects</p>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">$0 <span className="text-xs font-normal text-slate-500">/mo</span></div>
+                      <ul className="text-xs space-y-2 mb-6 text-slate-600 dark:text-slate-400">
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> 7-day retention</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> 50GB ingestion</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> Community support</li>
+                      </ul>
+                      <button className="btn btn-outlined w-full" disabled>Current Plan</button>
+                    </div>
+
+                    {/* Pro Plan */}
+                    <div className="card p-5 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/10 relative">
+                      <span className="absolute -top-2.5 right-4 bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">RECOMMENDED</span>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">Pro</h4>
+                      <p className="text-xs text-slate-500 mb-4">For growing production teams</p>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">$49 <span className="text-xs font-normal text-slate-500">/mo</span></div>
+                      <ul className="text-xs space-y-2 mb-6 text-slate-600 dark:text-slate-400">
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> 30-day retention</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> 500GB ingestion</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> Advanced AI Analytics</li>
+                      </ul>
+                      <button 
+                        onClick={handleUpgradeStripe}
+                        disabled={isStripeLoading}
+                        className="btn btn-primary w-full flex justify-center items-center gap-2"
+                      >
+                        {isStripeLoading ? <RefreshCw className="animate-spin" size={14} /> : null}
+                        {isStripeLoading ? "Connecting to Stripe..." : "Upgrade to Pro"}
+                      </button>
+                    </div>
+
+                    {/* Enterprise Plan */}
+                    <div className="card p-5 border-2 border-transparent bg-[var(--surface-1)]">
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">Enterprise</h4>
+                      <p className="text-xs text-slate-500 mb-4">For scale and compliance</p>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Custom</div>
+                      <ul className="text-xs space-y-2 mb-6 text-slate-600 dark:text-slate-400">
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> Unlimited retention</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> Unlimited ingestion</li>
+                        <li className="flex gap-2"><Check size={14} className="text-green-500" /> SOC2 & Dedicated Support</li>
+                      </ul>
+                      <button className="btn btn-outlined w-full">Contact Sales</button>
                     </div>
                   </div>
                 </div>

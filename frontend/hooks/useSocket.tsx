@@ -15,9 +15,11 @@ export const useSocket = () => {
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-      timeout: 5000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000, // Exponential backoff max
+      randomizationFactor: 0.5,
+      timeout: 10000,
     });
     useMonitoringStore.setState({ socket });
 

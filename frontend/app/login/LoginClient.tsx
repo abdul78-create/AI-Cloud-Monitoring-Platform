@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, Shield, Zap, BarChart3, Globe, Cpu, CheckCircle } from "lucide-react";
+import { TurnstileMock } from "@/components/TurnstileMock";
 
 /* ── Google Brand Icon ── */
 const GoogleIcon = () => (
@@ -36,6 +37,7 @@ export default function LoginClient() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [loading, setLoading] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     if (status === "authenticated") router.replace(callbackUrl);
@@ -217,82 +219,95 @@ export default function LoginClient() {
               </p>
             </div>
 
-            {/* Google sign-in button */}
-            <button
-              id="google-signin-btn"
-              onClick={handleGoogleSignIn}
-              disabled={loading || status === "loading"}
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-150"
-              style={{
-                background: "var(--surface-0)",
-                border: "1px solid var(--border-default)",
-                color: "var(--text-primary)",
-                boxShadow: "var(--shadow-1)",
-              }}
-              onMouseEnter={e => {
-                if (!loading) {
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-2)";
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
-                }
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-1)";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
-              }}
-            >
-              {loading ? (
-                <div
-                  className="h-4 w-4 rounded-full border-2"
-                  style={{
-                    borderColor: "var(--border-strong)",
-                    borderTopColor: "var(--brand-600)",
-                    animation: "spin 0.8s linear infinite",
-                  }}
-                />
-              ) : (
-                <GoogleIcon />
-              )}
-              {loading ? "Redirecting to Google…" : "Continue with Google"}
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-5">
-              <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
-              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>or</span>
-              <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
-            </div>
-
-            {/* Demo access */}
-            <div
-              className="rounded-lg p-4"
-              style={{
-                background: "var(--brand-50)",
-                border: "1px solid var(--color-info-border)",
-              }}
-            >
-              <p className="text-xs font-semibold mb-1" style={{ color: "var(--brand-600)" }}>
-                Demo Mode Available
-              </p>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Explore the full dashboard without a Google account.
-                Sign in unlocks persistent sessions and team features.
-              </p>
-              <button
-                id="demo-access-btn"
-                onClick={handleGuestSignIn}
-                disabled={loading}
-                className="mt-3 text-xs font-semibold transition-colors disabled:opacity-50"
-                style={{ color: "var(--brand-600)" }}
-                onMouseEnter={e => {
-                  if (!loading) (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-700)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-600)";
-                }}
+            {/* Login Options / Human Verification */}
+            {!isVerified ? (
+              <div className="flex justify-center my-6">
+                <TurnstileMock onVerify={() => setIsVerified(true)} />
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                {loading ? "Accessing guest mode..." : "Continue as guest →"}
-              </button>
-            </div>
+                {/* Google sign-in button */}
+                <button
+                  id="google-signin-btn"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading || status === "loading"}
+                  className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-150"
+                  style={{
+                    background: "var(--surface-0)",
+                    border: "1px solid var(--border-default)",
+                    color: "var(--text-primary)",
+                    boxShadow: "var(--shadow-1)",
+                  }}
+                  onMouseEnter={e => {
+                    if (!loading) {
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-2)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow = "var(--shadow-1)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-default)";
+                  }}
+                >
+                  {loading ? (
+                    <div
+                      className="h-4 w-4 rounded-full border-2"
+                      style={{
+                        borderColor: "var(--border-strong)",
+                        borderTopColor: "var(--brand-600)",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  {loading ? "Redirecting to Google…" : "Continue with Google"}
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-5">
+                  <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>or</span>
+                  <div className="flex-1 h-px" style={{ background: "var(--border-default)" }} />
+                </div>
+
+                {/* Demo access */}
+                <div
+                  className="rounded-lg p-4"
+                  style={{
+                    background: "var(--brand-50)",
+                    border: "1px solid var(--color-info-border)",
+                  }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: "var(--brand-600)" }}>
+                    Demo Mode Available
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    Explore the full dashboard without a Google account.
+                    Sign in unlocks persistent sessions and team features.
+                  </p>
+                  <button
+                    id="demo-access-btn"
+                    onClick={handleGuestSignIn}
+                    disabled={loading}
+                    className="mt-3 text-xs font-semibold transition-colors disabled:opacity-50"
+                    style={{ color: "var(--brand-600)" }}
+                    onMouseEnter={e => {
+                      if (!loading) (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-700)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.color = "var(--brand-600)";
+                    }}
+                  >
+                    {loading ? "Accessing guest mode..." : "Continue as guest →"}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Terms */}

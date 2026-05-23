@@ -238,7 +238,19 @@ export default function IncidentDetailPage() {
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <Clock size={13} />
             Started {timeAgo(inc.startedAt)}
-            {inc.assignedTo && <><span>·</span><User size={13} />{inc.assignedTo}</>}
+            {inc.assignedTo ? (
+              <><span>·</span><User size={13} />{inc.assignedTo}</>
+            ) : (
+              <>
+                <span>·</span>
+                <button 
+                  onClick={() => setInc({...inc, assignedTo: "Ops Admin"})}
+                  className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-semibold transition-colors flex items-center gap-1"
+                >
+                  <User size={11} /> Assign to me
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -324,21 +336,26 @@ export default function IncidentDetailPage() {
             </div>
           </div>
 
-          {/* Runbook */}
+          {/* Recovery Actions (Playbook) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 <Terminal size={15} className="text-blue-600" />
-                Runbook
+                Recovery Actions
               </h3>
             </div>
             <div className="p-5 space-y-3">
               {inc.runbook.map((step, i) => (
-                <div key={i} className="flex gap-3 text-xs">
-                  <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {i + 1}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300 font-mono leading-relaxed pt-0.5">{step}</p>
+                <div key={i} className="flex gap-3 text-xs items-center justify-between group">
+                  <div className="flex gap-3 items-center">
+                    <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {i + 1}
+                    </span>
+                    <p className="text-slate-700 dark:text-slate-300 font-mono leading-relaxed pt-0.5">{step}</p>
+                  </div>
+                  <button className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-bold transition-all flex items-center gap-1.5">
+                    <Zap size={10} className="text-amber-500" /> Execute
+                  </button>
                 </div>
               ))}
             </div>

@@ -58,6 +58,18 @@ function generateMetricSnapshot() {
     else              { threat.spike(5); }
   }
   const sm = tick <= anomalyUntil ? 2.2 : 1;
+  
+  // Simulate occasional 503 / packet drop (5% chance)
+  if (Math.random() < 0.05) {
+    return {
+      timestamp: new Date().toISOString(),
+      cpu: cpu.current, memory: mem.current, network: net.current, disk: disk.current,
+      requestsPerSec: 0, errorRate: 100, latencyMs: -1, activeThreats: 0,
+      anomalyActive: tick <= anomalyUntil,
+      isDropped: true, // Internal flag
+    };
+  }
+
   return {
     timestamp: new Date().toISOString(),
     cpu: cpu.next(sm),
@@ -142,11 +154,20 @@ function generateInsight() {
 export function startTelemetryBroadcaster(io: Server) {
   console.log("[TELEMETRY] Live broadcaster started — emitting every 3s");
 
-  // Metrics every 3 seconds
+  // Metrics every 3 seconds (base rate)
   const metricInterval = setInterval(async () => {
-    const snapshot = generateMetricSnapshot();
-    io.emit("live:metrics", snapshot);
-    await storeMetricSnapshot(snapshot);
+    // Inject 0-600ms of random jitter
+    const jitter = Math.floor(Math.random() * 600);
+    setTimeout(async () => {
+      const snapshot = generateMetricSnapshot();
+      if ((snapshot as any).isDropped) {
+        console.log("[SIMULATION] Simulated 503 / Packet Drop");
+        // Don't emit to simulate an actual drop in the frontend UI, or emit with -1 latency
+        // We'll emit it with 503 values so the UI sees the spike in errors
+      }
+      io.emit("live:metrics", snapshot);
+      await storeMetricSnapshot(snapshot);
+    }, jitter);
   }, 3000);
 
   // Incidents every 8 seconds (probabilistic)

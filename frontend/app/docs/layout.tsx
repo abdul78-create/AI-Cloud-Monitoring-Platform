@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Book, Compass, Shield, Terminal, Zap, ChevronRight, Activity } from "lucide-react";
+import { Book, Compass, Shield, Terminal, Zap, ChevronRight, Activity, Server, Bell, BrainCircuit } from "lucide-react";
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,32 +25,35 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-3">Getting Started</h4>
               <div className="space-y-1">
-                <Link href="/docs" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  <Compass size={16} /> Overview
+                <Link href="/docs/getting-started" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <Compass size={16} /> Overview & Architecture
                 </Link>
-                <Link href="/docs/architecture" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  <Book size={16} /> Architecture
+                <Link href="/docs/connect-infra" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <Server size={16} /> Connect Infrastructure
                 </Link>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-3">Integration</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-3">Operations</h4>
               <div className="space-y-1">
-                <Link href="/docs/agent" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  <Terminal size={16} /> Agent Installation
+                <Link href="/docs/monitoring" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <Activity size={16} /> Monitoring Guide
                 </Link>
+                <Link href="/docs/alerting" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <Bell size={16} /> Alerting Guide
+                </Link>
+                <Link href="/docs/ai-ops" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <BrainCircuit size={16} /> AI Ops Guide
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-3">Developer</h4>
+              <div className="space-y-1">
                 <Link href="/docs/api" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                   <Zap size={16} /> API Reference
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 px-3">Platform</h4>
-              <div className="space-y-1">
-                <Link href="/docs/security" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  <Shield size={16} /> Security & Auth
                 </Link>
               </div>
             </div>

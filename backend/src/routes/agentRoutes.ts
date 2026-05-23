@@ -1,17 +1,37 @@
 import { Router, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { agentRegistry, AgentHeartbeat } from "./opsRoutes";
-import { evaluateThresholds } from "../services/alertEngineService";
+import { enqueueTelemetry } from "../services/telemetryWorker";
+import { z } from "zod";
+
+const HeartbeatSchema = z.object({
+  agentId: z.string().min(1),
+  hostname: z.string().min(1),
+  ip: z.string(),
+  version: z.string(),
+  metrics: z.object({
+    cpu: z.number().min(0).max(100),
+    memory: z.number().min(0).max(100),
+    disk: z.number().min(0).max(100),
+    networkIn: z.number().optional(),
+    networkOut: z.number().optional(),
+    networkInBytes: z.number().optional(),
+    networkOutBytes: z.number().optional(),
+    uptime: z.number().optional()
+  }).passthrough().optional(),
+  processes: z.array(z.any()).optional()
+});
 
 export const agentRouter = Router();
 
 /** POST /api/agent/heartbeat — receive heartbeat from monitoring agent */
 agentRouter.post("/heartbeat", asyncHandler(async (req: Request, res: Response) => {
-  const payload = req.body as AgentHeartbeat;
-  if (!payload.agentId || !payload.hostname) {
-    res.status(400).json({ success: false, message: "agentId and hostname required" });
+  const result = HeartbeatSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ success: false, message: "Invalid payload", errors: result.error.errors });
     return;
   }
+  const payload = result.data as AgentHeartbeat;
   agentRegistry.set(payload.agentId, {
     heartbeat: payload,
     lastSeen: new Date(),
@@ -20,14 +40,13 @@ agentRouter.post("/heartbeat", asyncHandler(async (req: Request, res: Response) 
   console.log(`[AGENT] Heartbeat received from ${payload.hostname} (${payload.agentId})`);
 
   if (payload.metrics) {
-    const io = req.app.get("io");
     const metricsToEval = {
       cpu: payload.metrics.cpu,
       memory: payload.metrics.memory,
       disk: payload.metrics.disk,
       latency: 0
     };
-    evaluateThresholds(metricsToEval, payload.hostname, io);
+    enqueueTelemetry(payload.hostname, metricsToEval, true).catch(err => console.error("BullMQ Enqueue Error:", err));
   }
 
   res.json({ success: true, message: "Heartbeat registered", interval: 5 });

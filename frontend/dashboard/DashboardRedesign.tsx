@@ -15,6 +15,7 @@ import {
 import { useMonitoringPolling } from "@/hooks/useMonitoringPolling";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
+import { OnboardingChecklist } from "@/dashboard/components/OnboardingChecklist";
 
 /* ── CPU icon (not in lucide) ── */
 const CpuIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -226,6 +227,13 @@ export const DashboardRedesign = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Onboarding Checklist ── */}
+      <OnboardingChecklist
+        hasInfrastructure={serviceHealth.length > 0}
+        hasAlerts={alerts.length > 0}
+        hasViewedAI={false}
+      />
 
       {/* ── Stat cards ── */}
       {latest ? (

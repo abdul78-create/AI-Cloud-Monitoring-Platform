@@ -16,13 +16,13 @@ const config: Config = {
     extend: {
       backgroundImage: {
         "hero-gradient":
-          "radial-gradient(circle at top right, rgba(217, 245, 255, 0.6), transparent 50%), radial-gradient(circle at top left, rgba(245, 235, 255, 0.6), transparent 35%), linear-gradient(to bottom right, #f8fafc, #f1f5f9)"
+          "linear-gradient(to bottom, var(--surface-0), var(--surface-1))"
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(31, 38, 135, 0.04)",
-        premium: "0 20px 50px rgba(0, 0, 0, 0.05)",
-        "premium-hover": "0 30px 60px rgba(0, 0, 0, 0.08)",
-        spotlight: "0 0 100px rgba(56, 189, 248, 0.15)"
+        glass: "0 1px 2px rgba(0, 0, 0, 0.04)",
+        premium: "0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02)",
+        "premium-hover": "0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03)",
+        spotlight: "0 0 80px rgba(59, 130, 246, 0.07)"
       }
     }
   },
