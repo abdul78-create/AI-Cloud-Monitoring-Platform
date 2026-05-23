@@ -49,7 +49,7 @@ router.post("/trigger", async (req, res) => {
         message: "CPU utilization spiked",
         metric: "cpu",
         state: "firing",
-        firedAt: new Date().toISOString(),
+        firedAt: new Date(),
         channels: ["slack"]
       });
     }, 5000);
@@ -93,7 +93,7 @@ router.post("/trigger", async (req, res) => {
       message: "Database running out of resources",
       metric: "memory",
       state: "firing",
-      firedAt: new Date().toISOString(),
+      firedAt: new Date(),
       channels: ["slack"]
     });
 
