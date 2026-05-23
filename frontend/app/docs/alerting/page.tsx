@@ -18,12 +18,12 @@ export default function AlertingDoc() {
         </p>
         <div className="bg-slate-950 p-4 rounded-lg">
           <pre className="text-sm text-slate-300 font-mono">
-            <code>{"{"}
+            <code>{`{
   "metric": "cpu",
-  "condition": "&gt;",
+  "condition": ">",
   "threshold": 90,
   "duration": "5m"
-{"}"}</code>
+}`}</code>
           </pre>
         </div>
       </section>
@@ -31,7 +31,7 @@ export default function AlertingDoc() {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">Deduplication & Cooldowns</h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          To prevent PagerDuty spam, CloudAI uses a deduplication engine. If a server's CPU spikes to 95% multiple times in a 10-minute window, it groups those into a single incident rather than creating 5 separate incidents.
+          To prevent PagerDuty spam, CloudAI uses a deduplication engine. If a server&apos;s CPU spikes to 95% multiple times in a 10-minute window, it groups those into a single incident rather than creating 5 separate incidents.
         </p>
         <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-900/30 rounded-lg">
           <h4 className="text-sm font-bold text-indigo-800 dark:text-indigo-300 mb-1">Cooldown Window</h4>
