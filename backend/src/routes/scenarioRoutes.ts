@@ -141,6 +141,215 @@ router.post("/trigger", async (req, res) => {
     }, 8000);
 
     return res.json({ success: true, message: "Incident Recovery scenario started. Check logs and dashboard." });
+  } else if (scenarioId === "redis-failure") {
+    console.log("[Scenario] Starting Flow: Redis Failure");
+    
+    if (redis) {
+      await redis.xAdd("metrics:live", "*", {
+        serverId: "redis-cache-tier",
+        latency: "850", hitRate: "12", timestamp: new Date().toISOString()
+      });
+    }
+    await deliverAlertNotification({
+      id: "ALT-SCENARIO-REDIS",
+      ruleId: "demo-redis",
+      ruleName: "CRITICAL: Redis Cache Latency Spike",
+      severity: "critical",
+      affectedService: "redis-cache-tier",
+      currentValue: 850,
+      threshold: 100,
+      message: "Cache hit rate dropped to 12%, latency spiked to 850ms.",
+      metric: "latency",
+      state: "firing",
+      firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 0,
+      acknowledgedBy: null,
+      channels: ["slack"]
+    });
+
+    setTimeout(async () => {
+      const rca = generateRCA("INC-REDIS-FAIL", "latency-spike", "redis-cache-tier");
+      if (redis) {
+        await redis.xAdd("incidents:stream", "*", {
+          id: rca.incidentId,
+          title: rca.title,
+          severity: rca.severity,
+          status: "active",
+          data: JSON.stringify(rca),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 3000);
+    return res.json({ success: true, message: "Redis Failure scenario started." });
+
+  } else if (scenarioId === "api-latency") {
+    console.log("[Scenario] Starting Flow: API Latency");
+    
+    if (redis) {
+      await redis.xAdd("metrics:live", "*", {
+        serverId: "api-gateway",
+        latency: "2500", errorRate: "8", timestamp: new Date().toISOString()
+      });
+    }
+    await deliverAlertNotification({
+      id: "ALT-SCENARIO-API",
+      ruleId: "demo-api",
+      ruleName: "CRITICAL: API Gateway Degradation",
+      severity: "critical",
+      affectedService: "api-gateway",
+      currentValue: 2500,
+      threshold: 500,
+      message: "API latency spiked to 2500ms, error rate at 8%.",
+      metric: "latency",
+      state: "firing",
+      firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 0,
+      acknowledgedBy: null,
+      channels: ["slack", "pagerduty"]
+    });
+
+    setTimeout(async () => {
+      const rca = generateRCA("INC-API-LATENCY", "latency-spike", "api-gateway");
+      if (redis) {
+        await redis.xAdd("incidents:stream", "*", {
+          id: rca.incidentId,
+          title: rca.title,
+          severity: rca.severity,
+          status: "investigating",
+          data: JSON.stringify(rca),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 4000);
+    return res.json({ success: true, message: "API Latency scenario started." });
+
+  } else if (scenarioId === "memory-leak") {
+    console.log("[Scenario] Starting Flow: Memory Leak");
+    
+    if (redis) {
+      await redis.xAdd("metrics:live", "*", {
+        serverId: "worker-node-1",
+        cpu: "40", memory: "99", timestamp: new Date().toISOString()
+      });
+    }
+    await deliverAlertNotification({
+      id: "ALT-SCENARIO-MEM",
+      ruleId: "demo-mem",
+      ruleName: "CRITICAL: OOM Risk on Worker Node",
+      severity: "critical",
+      affectedService: "worker-node-1",
+      currentValue: 99,
+      threshold: 90,
+      message: "Memory utilization reached 99%, OOM killer imminent.",
+      metric: "memory",
+      state: "firing",
+      firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 1,
+      acknowledgedBy: null,
+      channels: ["slack"]
+    });
+
+    setTimeout(async () => {
+      const rca = generateRCA("INC-MEM-LEAK", "memory-leak", "worker-node-1");
+      if (redis) {
+        await redis.xAdd("incidents:stream", "*", {
+          id: rca.incidentId,
+          title: rca.title,
+          severity: rca.severity,
+          status: "active",
+          data: JSON.stringify(rca),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 3500);
+    return res.json({ success: true, message: "Memory Leak scenario started." });
+
+  } else if (scenarioId === "container-crash") {
+    console.log("[Scenario] Starting Flow: Container Crash");
+    
+    if (redis) {
+      await redis.xAdd("metrics:live", "*", {
+        serverId: "k8s-cluster-prod",
+        activeContainers: "12", restarts: "45", timestamp: new Date().toISOString()
+      });
+    }
+    await deliverAlertNotification({
+      id: "ALT-SCENARIO-DOCKER",
+      ruleId: "demo-docker",
+      ruleName: "CRITICAL: High Container Restart Rate",
+      severity: "critical",
+      affectedService: "k8s-cluster-prod",
+      currentValue: 45,
+      threshold: 10,
+      message: "45 container restarts detected in the last 5 minutes. CrashLoopBackOff suspected.",
+      metric: "error_rate",
+      state: "firing",
+      firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 0,
+      acknowledgedBy: null,
+      channels: ["slack"]
+    });
+
+    setTimeout(async () => {
+      const rca = generateRCA("INC-DOCKER-CRASH", "deployment-failure", "k8s-cluster-prod");
+      if (redis) {
+        await redis.xAdd("incidents:stream", "*", {
+          id: rca.incidentId,
+          title: rca.title,
+          severity: rca.severity,
+          status: "active",
+          data: JSON.stringify(rca),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 3000);
+    return res.json({ success: true, message: "Container Crash scenario started." });
+
+  } else if (scenarioId === "network-degradation") {
+    console.log("[Scenario] Starting Flow: Network Degradation");
+    
+    if (redis) {
+      await redis.xAdd("metrics:live", "*", {
+        serverId: "network-lb",
+        packetLoss: "15", latency: "420", timestamp: new Date().toISOString()
+      });
+    }
+    await deliverAlertNotification({
+      id: "ALT-SCENARIO-NET",
+      ruleId: "demo-net",
+      ruleName: "WARNING: Elevated Packet Loss",
+      severity: "warning",
+      affectedService: "network-lb",
+      currentValue: 15,
+      threshold: 5,
+      message: "Packet loss at 15% across load balancer ingress.",
+      metric: "latency",
+      state: "firing",
+      firedAt: new Date(),
+      resolvedAt: null,
+      escalationLevel: 0,
+      acknowledgedBy: null,
+      channels: ["slack"]
+    });
+
+    setTimeout(async () => {
+      const rca = generateRCA("INC-NET-DROP", "network-drop", "network-lb");
+      if (redis) {
+        await redis.xAdd("incidents:stream", "*", {
+          id: rca.incidentId,
+          title: rca.title,
+          severity: rca.severity,
+          status: "investigating",
+          data: JSON.stringify(rca),
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, 4500);
+    return res.json({ success: true, message: "Network Degradation scenario started." });
   }
 
   return res.status(400).json({ error: "Unknown scenario" });
