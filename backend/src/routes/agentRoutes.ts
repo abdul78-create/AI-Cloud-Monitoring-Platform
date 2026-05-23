@@ -19,7 +19,9 @@ const HeartbeatSchema = z.object({
     networkOutBytes: z.number().optional(),
     uptime: z.number().optional()
   }).passthrough().optional(),
-  processes: z.array(z.any()).optional()
+  processes: z.array(z.any()).optional(),
+  docker: z.array(z.any()).optional(),
+  system: z.any().optional()
 });
 
 export const agentRouter = Router();
@@ -60,6 +62,9 @@ agentRouter.get("/metrics", asyncHandler(async (_req: Request, res: Response) =>
     lastSeen: entry.lastSeen,
     status: entry.status,
     metrics: entry.heartbeat.metrics,
+    docker: entry.heartbeat.docker,
+    processes: entry.heartbeat.processes,
+    system: entry.heartbeat.system,
   }));
   res.json({ success: true, data: agentsMetrics });
 }));

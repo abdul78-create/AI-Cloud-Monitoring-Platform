@@ -12,7 +12,7 @@ import {
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
-import { verifySshConnection, installAgentViaSsh } from "../services/sshService";
+import { verifySshConnection, installAgentViaSsh, executeSafeSshCommand } from "../services/sshService";
 
 export const opsRoutes = Router();
 
@@ -138,6 +138,8 @@ export interface AgentHeartbeat {
     [key: string]: any;
   };
   processes?: any[];
+  docker?: any[];
+  system?: any;
 }
 
 export const agentRegistry = new Map<string, { heartbeat: AgentHeartbeat; lastSeen: Date; status: string }>();
@@ -157,7 +159,9 @@ const HeartbeatSchema = z.object({
     networkOutBytes: z.number().optional(),
     uptime: z.number().optional()
   }).passthrough().optional(),
-  processes: z.array(z.any()).optional()
+  processes: z.array(z.any()).optional(),
+  docker: z.array(z.any()).optional(),
+  system: z.any().optional()
 });
 
 /** POST /api/ops/agent/heartbeat — receive heartbeat from monitoring agent */
@@ -440,6 +444,22 @@ opsRoutes.get("/agent/package.json", (req: Request, res: Response) => {
     res.status(404).send("package.json not found on server");
   }
 });
+
+/** POST /api/ops/ssh/execute — run whitelisted command on SSH node */
+opsRoutes.post("/ssh/execute", asyncHandler(async (req: Request, res: Response) => {
+  const { connectionId, command } = req.body;
+  if (!connectionId || !command) {
+    res.status(400).json({ success: false, message: "Missing connectionId or command" });
+    return;
+  }
+  
+  try {
+    const output = await executeSafeSshCommand(connectionId, command);
+    res.json({ success: true, output });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+}));
 
 /** POST /api/ops/ssh/install-agent — deploy agent via SSH */
 opsRoutes.post("/ssh/install-agent", asyncHandler(async (req: Request, res: Response) => {

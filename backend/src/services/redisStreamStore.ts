@@ -21,7 +21,7 @@ const MAX_STREAM_LEN   = 10000;
 let client: RedisClientType | null = null;
 let isConnected = false;
 
-async function getClient(): Promise<RedisClientType | null> {
+export async function getClient(): Promise<RedisClientType | null> {
   if (client && isConnected) return client;
 
   const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";

@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Cpu,
   Globe,
+  Database,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   AreaChart,
@@ -116,6 +118,8 @@ export default function LandingRedesign() {
         <Hero />
         <TrustBar />
         <HowItWorks />
+        <ArchitectureDiagramSection />
+        <DemoVideoSection />
         <LiveDashboardPreview />
         <EnterpriseFeatures />
         <AgentInstaller />
@@ -192,6 +196,12 @@ function Navbar({
           >
             {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
           </button>
+          
+          <div className="hidden lg:flex flex-col items-end mr-2">
+            <span className="text-[10px] text-slate-500 font-medium">demo@cloudai.dev</span>
+            <span className="text-[10px] text-slate-400">demo123</span>
+          </div>
+
           <Link
             href="/dashboard"
             className="hidden sm:inline text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
@@ -652,6 +662,129 @@ function HowItWorks() {
               </div>
             </motion.div>
           ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ARCHITECTURE DIAGRAM SECTION
+// ─────────────────────────────────────────────────────────────
+function ArchitectureDiagramSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <section className="py-28 bg-slate-50 dark:bg-slate-900/40">
+      <div ref={ref} className="mx-auto max-w-7xl px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="max-w-2xl mx-auto mb-16"
+        >
+          <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
+            Real-Time Architecture
+          </p>
+          <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+            How data flows through CloudAI
+          </h2>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={inView ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="relative max-w-4xl mx-auto p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400"><Server size={24} /></div>
+              <span className="text-sm font-semibold dark:text-slate-300">Infra Nodes</span>
+            </div>
+            
+            <div className="flex-1 flex flex-col items-center opacity-70">
+              <span className="text-[10px] font-mono mb-1 text-slate-500">cloudai-agent</span>
+              <div className="w-full h-0.5 bg-gradient-to-r from-indigo-500/0 via-indigo-500 to-indigo-500/0 relative overflow-hidden">
+                <motion.div className="absolute top-0 bottom-0 w-12 bg-white" animate={{ x: [-50, 400] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} />
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400"><Database size={24} /></div>
+              <span className="text-sm font-semibold dark:text-slate-300">Redis Queue</span>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center opacity-70">
+              <div className="w-full h-0.5 bg-gradient-to-r from-emerald-500/0 via-emerald-500 to-emerald-500/0 relative overflow-hidden">
+                <motion.div className="absolute top-0 bottom-0 w-12 bg-white" animate={{ x: [-50, 400] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear", delay: 0.5 }} />
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400"><Brain size={24} /></div>
+              <span className="text-sm font-semibold dark:text-slate-300">AI Engine</span>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center opacity-70">
+              <div className="w-full h-0.5 bg-gradient-to-r from-rose-500/0 via-rose-500 to-rose-500/0 relative overflow-hidden">
+                <motion.div className="absolute top-0 bottom-0 w-12 bg-white" animate={{ x: [-50, 400] }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear", delay: 1.0 }} />
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-4 rounded-full bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400"><LayoutDashboard size={24} /></div>
+              <span className="text-sm font-semibold dark:text-slate-300">Dashboard</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DEMO VIDEO SECTION
+// ─────────────────────────────────────────────────────────────
+function DemoVideoSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <section className="py-28 bg-white dark:bg-slate-950">
+      <div ref={ref} className="mx-auto max-w-5xl px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="max-w-2xl mx-auto mb-12"
+        >
+          <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+            See it in action
+          </h2>
+          <p className="mt-4 text-lg text-slate-500 dark:text-slate-400">
+            Watch how CloudAI detects a CPU spike, correlates it to a recent deployment, and triggers an automated RCA.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="relative aspect-video rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center group cursor-pointer"
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity group-hover:opacity-40" alt="Dashboard Preview" />
+          
+          <div className="relative z-20 w-20 h-20 rounded-full bg-indigo-600/90 text-white flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform shadow-lg">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          
+          <div className="absolute bottom-6 left-6 z-20 text-left">
+            <span className="badge badge-live mb-2 text-xs">90 Seconds</span>
+            <h3 className="text-xl font-bold text-white shadow-sm">End-to-End Incident Flow</h3>
+          </div>
         </motion.div>
       </div>
     </section>

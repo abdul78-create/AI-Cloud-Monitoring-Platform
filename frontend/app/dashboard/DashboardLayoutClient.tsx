@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SidebarNav } from "@/dashboard/components/SidebarNav";
 import { TopNavbar } from "@/dashboard/components/TopNavbar";
 import { AuthRequiredModal } from "@/components/AuthRequiredModal";
+import { ScenarioController } from "@/dashboard/components/ScenarioController";
 
 import { useSocket } from "@/hooks/useSocket";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
@@ -146,6 +147,7 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
       <AIAssistant />
       <CommandPalette />
       <AuthRequiredModal />
+      <ScenarioController />
 
       {/* Keyboard Shortcuts Modal */}
       <AnimatePresence>

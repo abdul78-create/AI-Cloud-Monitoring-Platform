@@ -3,6 +3,7 @@ import { generateRCA, calculateOutageProbabilities, generatePostmortem } from ".
 import { collectRealMetrics, getLocalMachineSummary } from "../services/systemInfoService";
 
 export const analyticsRoutes = Router();
+import { getIncidentById } from "../services/incidentTimelineService";
 
 /**
  * GET /api/analytics/rca/:incidentId
@@ -11,7 +12,20 @@ export const analyticsRoutes = Router();
 analyticsRoutes.get("/rca/:incidentId", (req: Request, res: Response): void => {
   const { incidentId } = req.params;
   const { type, service } = req.query as { type?: string; service?: string };
-  const rca = generateRCA(incidentId, type ?? "high cpu memory", service);
+  
+  const inc = getIncidentById(incidentId);
+  let deploymentCorrelation: any = undefined;
+  if (inc?.deploymentCorrelation) {
+    deploymentCorrelation = {
+      version: inc.deploymentCorrelation.version,
+      deployedAt: inc.deploymentCorrelation.deployedAt.toISOString(),
+      minutesBefore: Math.round((Date.now() - inc.deploymentCorrelation.deployedAt.getTime()) / 60000),
+      confidence: inc.deploymentCorrelation.confidence,
+      changes: [inc.deploymentCorrelation.regressionSignal]
+    };
+  }
+
+  const rca = generateRCA(incidentId, type ?? "high cpu memory", service, deploymentCorrelation);
   res.json({ success: true, data: rca });
 });
 
@@ -25,7 +39,20 @@ analyticsRoutes.post("/rca", (req: Request, res: Response): void => {
     res.status(400).json({ success: false, message: "incidentId required" });
     return;
   }
-  const rca = generateRCA(incidentId, type ?? "general", service);
+  
+  const inc = getIncidentById(incidentId);
+  let deploymentCorrelation: any = undefined;
+  if (inc?.deploymentCorrelation) {
+    deploymentCorrelation = {
+      version: inc.deploymentCorrelation.version,
+      deployedAt: inc.deploymentCorrelation.deployedAt.toISOString(),
+      minutesBefore: Math.round((Date.now() - inc.deploymentCorrelation.deployedAt.getTime()) / 60000),
+      confidence: inc.deploymentCorrelation.confidence,
+      changes: [inc.deploymentCorrelation.regressionSignal]
+    };
+  }
+
+  const rca = generateRCA(incidentId, type ?? "general", service, deploymentCorrelation);
   res.json({ success: true, data: rca });
 });
 

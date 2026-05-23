@@ -190,9 +190,39 @@ export default function RealInfrastructurePage() {
   const [fleetLoading, setFleetLoading] = useState(true);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   
+  // SSH State
+  const [sshCommand, setSshCommand] = useState("");
+  const [sshOutput, setSshOutput] = useState("");
+  const [sshExecuting, setSshExecuting] = useState(false);
+  
   const socket = useMonitoringStore((state) => state.socket);
 
   // ─── Fetching Data ──────────────────────────────────────────────────────────
+
+  const handleSshExecute = async () => {
+    if (!selectedAgentId || !sshCommand.trim() || sshExecuting) return;
+    
+    setSshExecuting(true);
+    setSshOutput(`$ ${sshCommand}\nExecuting...`);
+    try {
+      // Find agent hostname to use as connectionId (mock uses hostname)
+      const agent = agents.find(a => a.agentId === selectedAgentId);
+      const connectionId = agent?.hostname || selectedAgentId;
+
+      const res = await api.post("/ops/ssh/execute", {
+        connectionId,
+        command: sshCommand
+      });
+      const data = unwrap<any>(res);
+      setSshOutput(`$ ${sshCommand}\n\n${data.output}`);
+    } catch (err: any) {
+      setSshOutput(`$ ${sshCommand}\n\nError: ${err.message || 'Execution failed'}`);
+      toast.error("SSH command execution failed");
+    } finally {
+      setSshExecuting(false);
+      setSshCommand("");
+    }
+  };
 
   const fetchLocalMetrics = async () => {
     try {
@@ -576,6 +606,46 @@ export default function RealInfrastructurePage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Agent Docker Containers */}
+                    {(inspectedAgent as any).docker && (inspectedAgent as any).docker.length > 0 && (
+                      <div className="card p-5 overflow-hidden border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
+                        <h3 className="heading-section mb-4 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-[#2496ed]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.434h2.118a.186.186 0 00.186-.186V3.57a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.185m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185h-2.119a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.185m2.93 2.718h2.118a.187.187 0 00.186-.186V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.187.187 0 00.184-.186V9.006a.186.186 0 00-.185-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.938 0h2.12a.187.187 0 00.184-.186V9.006a.186.186 0 00-.185-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.93 0h2.119a.186.186 0 00.185-.186V9.006a.186.186 0 00-.185-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.187.187 0 00.184-.186V9.006a.186.186 0 00-.185-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185M20.348 11.39a6.071 6.071 0 00-3.282-1.769l-.02-.006H1.933a.186.186 0 00-.186.186v2.213c0 3.738 2.656 6.541 6.643 6.541h10.97c3.987 0 6.642-2.803 6.642-6.541v-1.63a.186.186 0 00-.185-.186h-5.469v.005zm-6.233 4.137a1.696 1.696 0 11-1.697-1.695 1.695 1.695 0 011.697 1.695M16.14 15.527a1.696 1.696 0 11-1.697-1.695 1.695 1.695 0 011.697 1.695M18.156 15.527a1.696 1.696 0 11-1.696-1.695 1.696 1.696 0 011.696 1.695"/></svg>
+                          Docker Containers
+                        </h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                            <thead className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                              <tr>
+                                <th className="px-4 py-2 font-bold">Container ID</th>
+                                <th className="px-4 py-2 font-bold">Name</th>
+                                <th className="px-4 py-2 font-bold">Image</th>
+                                <th className="px-4 py-2 font-bold text-right">CPU %</th>
+                                <th className="px-4 py-2 font-bold text-right">Memory %</th>
+                                <th className="px-4 py-2 font-bold">State</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {(inspectedAgent as any).docker.map((c: any) => (
+                                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                  <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{c.id}</td>
+                                  <td className="px-4 py-2.5 text-slate-900 dark:text-white font-medium max-w-[200px] truncate">{c.name}</td>
+                                  <td className="px-4 py-2.5 text-xs text-slate-500 max-w-[150px] truncate" title={c.image}>{c.image}</td>
+                                  <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-slate-900 dark:text-white">{(c.cpu || 0).toFixed(1)}%</td>
+                                  <td className="px-4 py-2.5 text-right font-mono text-xs text-slate-600 dark:text-slate-300">{(c.memory || 0).toFixed(1)}%</td>
+                                  <td className="px-4 py-2.5">
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${c.state === 'running' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                      {c.state.toUpperCase()}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="card p-6 text-center text-sm text-slate-500">
@@ -757,60 +827,61 @@ export default function RealInfrastructurePage() {
             <div className="space-y-4">
               <div className="card p-8 text-center border-dashed border-2 bg-slate-50 dark:bg-slate-900/50">
                 <Shield size={32} className="mx-auto mb-4 text-slate-400" />
-                <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">SSH Remote Simulation</h2>
+                <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">Secure Remote Execution</h2>
                 <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
-                  Connect remote servers securely via SSH and key pairs. (Use daemon agents tab above for active telemetry ingestion).
+                  Execute whitelisted management commands directly on connected infrastructure. Only safe telemetry commands are permitted.
                 </p>
-                <div className="flex items-center justify-center gap-3">
-                  <button className="btn btn-primary" onClick={() => toast.success("Configuration simulation loaded.")}>Add Remote Server</button>
-                  <button className="btn btn-outlined text-slate-600">View Connection Logs</button>
-                </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Mock SSH server 1 */}
-                <div className="card p-5 opacity-75 hover:opacity-100 transition-opacity">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-lg"><Terminal size={16} /></div>
-                      <div>
-                        <div className="font-bold text-sm text-slate-900 dark:text-white">db-replica-01.prod</div>
-                        <div className="text-xs text-slate-500 font-mono">10.0.1.44</div>
-                      </div>
-                    </div>
-                    <span className="badge badge-success text-[10px]">CONNECTED</span>
+              <div className="card p-5">
+                <h3 className="heading-section mb-4 flex items-center gap-2">
+                  <Terminal size={16} /> Web Terminal
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="input flex-1 font-mono text-sm bg-slate-950 text-green-400 focus:ring-green-500" 
+                      placeholder="e.g. uptime, docker ps, df -h, free -m, systemctl status cloudai-agent"
+                      value={sshCommand}
+                      onChange={(e) => setSshCommand(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSshExecute(); }}
+                    />
+                    <button 
+                      className="btn btn-primary whitespace-nowrap bg-green-600 hover:bg-green-700 text-white border-none"
+                      onClick={handleSshExecute}
+                      disabled={sshExecuting || !sshCommand.trim() || !inspectedAgent}
+                    >
+                      {sshExecuting ? <RefreshCw className="animate-spin w-4 h-4" /> : "Execute"}
+                    </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded p-2">
-                      <div className="text-[10px] text-slate-500 uppercase">CPU</div>
-                      <div className="font-bold text-sm">24%</div>
+                  
+                  {!inspectedAgent && (
+                    <div className="text-xs text-amber-500 bg-amber-500/10 p-2 rounded">
+                      Please select an agent from the fleet view to run remote commands against its host.
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded p-2">
-                      <div className="text-[10px] text-slate-500 uppercase">MEM</div>
-                      <div className="font-bold text-sm">61%</div>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded p-2">
-                      <div className="text-[10px] text-slate-500 uppercase">PING</div>
-                      <div className="font-bold text-sm">12ms</div>
-                    </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Mock SSH server 2 */}
-                <div className="card p-5 opacity-75 hover:opacity-100 transition-opacity">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg"><Terminal size={16} /></div>
-                      <div>
-                        <div className="font-bold text-sm text-slate-900 dark:text-white">worker-queue-05</div>
-                        <div className="text-xs text-slate-500 font-mono">10.0.2.19</div>
-                      </div>
+                  <div className="bg-slate-950 rounded-lg p-4 min-h-[300px] overflow-auto border border-slate-800 relative">
+                    <div className="absolute top-2 right-2 flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <span className="badge badge-warning text-[10px]">OFFLINE</span>
+                    <pre className="font-mono text-xs text-slate-300 mt-4 whitespace-pre-wrap">{sshOutput || "Waiting for input..."}</pre>
                   </div>
-                  <div className="text-xs text-slate-500 mt-4 bg-slate-50 dark:bg-slate-800 p-3 rounded flex items-start gap-2">
-                    <AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" />
-                    Connection timed out after 30000ms. SSH key authentication failed.
+                  
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase mr-2 mt-1">Whitelisted:</span>
+                    {["uptime", "df -h", "free -m", "docker ps", "systemctl status"].map(cmd => (
+                      <button 
+                        key={cmd}
+                        onClick={() => setSshCommand(cmd)}
+                        className="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-200 dark:hover:bg-slate-700 font-mono"
+                      >
+                        {cmd}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

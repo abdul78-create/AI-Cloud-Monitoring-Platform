@@ -68,6 +68,7 @@ export default function AlertsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("rules");
   const [rules, setRules] = useState<AlertRule[]>(INITIAL_RULES);
   const [showNewRule, setShowNewRule] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const toggleRule = (id: string) => {
@@ -255,7 +256,10 @@ export default function AlertsPage() {
                        ch.id === "pagerduty" ? "pd_routing_key_****8f2a" : "https://hooks.example.com/alerts"}
                     </div>
                   </div>
-                  <button className="mt-4 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                  <button 
+                    className="mt-4 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                    onClick={() => setEditingChannel(ch.id)}
+                  >
                     Edit configuration →
                   </button>
                 </div>
@@ -288,6 +292,36 @@ export default function AlertsPage() {
                 ))}
                 <button onClick={() => { setShowNewRule(false); toast.success("Alert rule created!"); }} className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                   Create Rule
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Channel Modal */}
+      <AnimatePresence>
+        {editingChannel && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-40" onClick={() => setEditingChannel(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-50 p-6 border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white capitalize">Configure {editingChannel}</h3>
+                <button onClick={() => setEditingChannel(null)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Webhook / API URL</label>
+                  <input type="text" defaultValue={editingChannel === "slack" ? "https://hooks.slack.com/services/..." : ""} className="mt-1.5 w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-mono" />
+                </div>
+                {editingChannel === "webhook" && (
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Authorization Header</label>
+                    <input type="text" placeholder="Bearer ..." className="mt-1.5 w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500 font-mono" />
+                  </div>
+                )}
+                <button onClick={() => { setEditingChannel(null); toast.success("Configuration saved!"); }} className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                  Save Configuration
                 </button>
               </div>
             </motion.div>

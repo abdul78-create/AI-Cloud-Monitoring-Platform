@@ -34,8 +34,14 @@ export async function getSshClient(
   return ssh;
 }
 
-export async function executeSshCommand(ssh: NodeSSH, command: string): Promise<string> {
-  const result = await ssh.execCommand(command);
+export async function executeSshCommand(ssh: NodeSSH, command: string, timeoutMs = 10000): Promise<string> {
+  const resultPromise = ssh.execCommand(command);
+  const timeoutPromise = new Promise<{ stdout: string, stderr: string, code: number }>((_, reject) => {
+    setTimeout(() => reject(new Error(`Command timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  const result = await Promise.race([resultPromise, timeoutPromise]);
+  
   if (result.stderr && result.code !== 0) {
     throw new Error(`Command failed: ${result.stderr}`);
   }
@@ -123,4 +129,35 @@ export async function installAgentViaSsh(
   await executeSshCommand(ssh, `curl -fsSL ${apiBaseUrl}/install.sh | bash`);
   
   if (onProgress) onProgress("Agent installed and service started successfully.");
+}
+
+const WHITELISTED_COMMANDS = ["uptime", "df -h", "free -m", "docker ps", "systemctl status"];
+
+export async function executeSafeSshCommand(connectionId: string, command: string): Promise<string> {
+  if (!sshInstances.has(connectionId)) {
+    throw new Error("SSH session not found");
+  }
+
+  // Validate command
+  const isSafe = WHITELISTED_COMMANDS.some(cmd => command.startsWith(cmd));
+  if (!isSafe) {
+    throw new Error("Command not allowed. Only whitelisted commands can be executed.");
+  }
+
+  const ssh = sshInstances.get(connectionId)!;
+  try {
+    const resultPromise = ssh.execCommand(command);
+    const timeoutPromise = new Promise<{ stdout: string, stderr: string, code: number }>((_, reject) => {
+      setTimeout(() => reject(new Error("Command execution timed out after 15s")), 15000);
+    });
+
+    const result = await Promise.race([resultPromise, timeoutPromise]);
+    
+    if (result.stderr && result.code !== 0) {
+      throw new Error(result.stderr);
+    }
+    return result.stdout || result.stderr || "Success";
+  } catch (err: any) {
+    throw new Error(`Execution failed: ${err.message}`);
+  }
 }

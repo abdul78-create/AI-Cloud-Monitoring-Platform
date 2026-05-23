@@ -15,6 +15,18 @@
 
 import { env } from "../config/env";
 
+// ─── Simple Deterministic PRNG ────────────────────────────────────────────────
+let seedState = 12345;
+function seededRandom(seedStr?: string): number {
+  if (seedStr) {
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) hash = Math.imul(31, hash) + seedStr.charCodeAt(i) | 0;
+    seedState = hash;
+  }
+  seedState = (seedState * 9301 + 49297) % 233280;
+  return Math.abs(seedState / 233280);
+}
+
 // ─── Shared Types ──────────────────────────────────────────────────────────────
 
 export interface IncidentRCA {
@@ -250,7 +262,7 @@ function buildRCAChain(pattern: typeof INCIDENT_PATTERNS[0], service: string, ve
     label: node.label,
     description: node.description,
     type: node.type,
-    confidence: Math.round(82 + Math.random() * 15),
+    confidence: Math.round(82 + seededRandom() * 15),
     leadsTo: i < pattern.chain.length - 1 ? [`rca-${i + 1}`] : [],
   }));
 }
@@ -353,28 +365,31 @@ export function generateRCA(
   incidentId: string,
   incidentType: string,
   service?: string,
+  actualDeploymentCorrelation?: DeploymentCorrelation
 ): IncidentRCA {
-  const svc = service || SERVICES[Math.floor(Math.random() * SERVICES.length)];
-  const version = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
+  seededRandom(incidentId); // Seed PRNG
+  
+  const svc = service || SERVICES[Math.floor(seededRandom() * SERVICES.length)];
+  const version = VERSIONS[Math.floor(seededRandom() * VERSIONS.length)];
   const pattern = matchPattern(incidentType);
 
   const now = new Date();
   const detectedAt = new Date(now.getTime() - 7 * 60000);
-  const confidence = Math.round(82 + Math.random() * 13);
+  const confidence = Math.round(82 + seededRandom() * 13);
 
   const metrics: IncidentMetrics = {
-    cpuAtIncident: Math.round(75 + Math.random() * 20),
-    memoryAtIncident: Math.round(78 + Math.random() * 18),
-    errorRateAtIncident: parseFloat((3 + Math.random() * 6).toFixed(2)),
-    latencyAtIncident: Math.round(800 + Math.random() * 2000),
-    requestsPerSec: Math.round(400 + Math.random() * 600),
-    normalCpu: Math.round(30 + Math.random() * 15),
-    normalMemory: Math.round(50 + Math.random() * 20),
-    normalErrorRate: parseFloat((0.1 + Math.random() * 0.4).toFixed(2)),
-    normalLatency: Math.round(30 + Math.random() * 50),
+    cpuAtIncident: Math.round(75 + seededRandom() * 20),
+    memoryAtIncident: Math.round(78 + seededRandom() * 18),
+    errorRateAtIncident: parseFloat((3 + seededRandom() * 6).toFixed(2)),
+    latencyAtIncident: Math.round(800 + seededRandom() * 2000),
+    requestsPerSec: Math.round(400 + seededRandom() * 600),
+    normalCpu: Math.round(30 + seededRandom() * 15),
+    normalMemory: Math.round(50 + seededRandom() * 20),
+    normalErrorRate: parseFloat((0.1 + seededRandom() * 0.4).toFixed(2)),
+    normalLatency: Math.round(30 + seededRandom() * 50),
   };
 
-  const minutesBefore = Math.round(10 + Math.random() * 20);
+  const minutesBefore = Math.round(10 + seededRandom() * 20);
 
   return {
     incidentId,
@@ -383,21 +398,21 @@ export function generateRCA(
     severity: metrics.cpuAtIncident > 90 || metrics.errorRateAtIncident > 7 ? "critical" : "high",
     status: "investigating",
     detectedAt: detectedAt.toISOString(),
-    durationMinutes: Math.round(7 + Math.random() * 15),
+    durationMinutes: Math.round(7 + seededRandom() * 15),
     confidence,
-    outageProbability: Math.round(15 + Math.random() * 40),
+    outageProbability: Math.round(15 + seededRandom() * 40),
     summary: pattern.summary(svc, version),
     rootCauseChain: buildRCAChain(pattern, svc, version),
     affectedServices: [
-      { name: svc, impact: "primary", degradation: Math.round(60 + Math.random() * 35), status: "degraded" },
-      { name: SERVICES[(SERVICES.indexOf(svc) + 1) % SERVICES.length], impact: "secondary", degradation: Math.round(20 + Math.random() * 30), status: "slow" },
-      { name: SERVICES[(SERVICES.indexOf(svc) + 2) % SERVICES.length], impact: "downstream", degradation: Math.round(5 + Math.random() * 15), status: "slow" },
+      { name: svc, impact: "primary", degradation: Math.round(60 + seededRandom() * 35), status: "degraded" },
+      { name: SERVICES[(SERVICES.indexOf(svc) + 1) % SERVICES.length], impact: "secondary", degradation: Math.round(20 + seededRandom() * 30), status: "slow" },
+      { name: SERVICES[(SERVICES.indexOf(svc) + 2) % SERVICES.length], impact: "downstream", degradation: Math.round(5 + seededRandom() * 15), status: "slow" },
     ],
-    deploymentCorrelation: {
+    deploymentCorrelation: actualDeploymentCorrelation || {
       version,
       deployedAt: new Date(detectedAt.getTime() - minutesBefore * 60000).toISOString(),
       minutesBefore,
-      confidence: Math.round(75 + Math.random() * 20),
+      confidence: Math.round(75 + seededRandom() * 20),
       changes: [
         "Refactored request handler to async iterator",
         "Updated Redis client from v3 to v4",
@@ -428,12 +443,13 @@ export function generateRCA(
  */
 export function calculateOutageProbabilities(): OutageProbability[] {
   const services = ["api-gateway", "auth-service", "db-primary", "cache-redis", "worker-queue", "ml-inference"];
-
+  seededRandom("outage-probability-" + new Date().getHours()); // Update per hour
+  
   return services.map(svc => {
-    const errorContrib  = Math.round(Math.random() * 40);
-    const cpuContrib    = Math.round(Math.random() * 25);
-    const memContrib    = Math.round(Math.random() * 20);
-    const incidentCount = Math.round(Math.random() * 15);
+    const errorContrib  = Math.round(seededRandom() * 40);
+    const cpuContrib    = Math.round(seededRandom() * 25);
+    const memContrib    = Math.round(seededRandom() * 20);
+    const incidentCount = Math.round(seededRandom() * 15);
     const total = Math.min(95, errorContrib + cpuContrib + memContrib + incidentCount);
 
     return {

@@ -35,17 +35,50 @@ export async function pingDocker(docker: Docker): Promise<boolean> {
   }
 }
 
-export async function getDockerInfo(docker: Docker): Promise<any> {
-  return await docker.info();
+export async function getDockerInfo(docker: Docker): Promise<any | null> {
+  try {
+    return await docker.info();
+  } catch (err) {
+    console.error("[Docker] Failed to get info:", err);
+    return null;
+  }
 }
 
 export async function getDockerContainers(docker: Docker): Promise<any[]> {
-  return await docker.listContainers({ all: true });
+  try {
+    return await docker.listContainers({ all: true });
+  } catch (err) {
+    console.error("[Docker] Failed to list containers:", err);
+    return [];
+  }
 }
 
 export async function generateServerFromDocker(connectionId: string, docker: Docker, region: string): Promise<ConnectedServer> {
   const info = await getDockerInfo(docker);
   const containers = await getDockerContainers(docker);
+
+  if (!info) {
+    // Fallback if docker daemon is unreachable
+    return {
+      id: connectionId,
+      hostname: "docker-host-offline",
+      ip: "127.0.0.1",
+      provider: "docker",
+      instanceType: "Unknown",
+      os: "Unknown",
+      status: "critical",
+      uptime: "Offline",
+      region,
+      cpu: 0,
+      memory: 0,
+      disk: 0,
+      networkIn: 0,
+      networkOut: 0,
+      processes: [],
+      services: [{ name: "docker-engine", status: "failed", uptime: "Offline" }],
+      lastSeen: new Date().toISOString()
+    };
+  }
 
   // Map containers to processes for the UI
   const processes: ProcessInfo[] = containers.map(c => ({

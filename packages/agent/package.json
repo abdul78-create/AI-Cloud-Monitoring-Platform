@@ -1,0 +1,26 @@
+{
+  "name": "cloudai-agent",
+  "version": "1.0.0",
+  "description": "CloudAI Infrastructure Monitoring Agent",
+  "main": "dist/index.js",
+  "bin": {
+    "cloudai-agent": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "dockerode": "^4.0.2",
+    "systeminformation": "^5.22.8",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.29",
+    "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -12,6 +12,7 @@ import {
   resolveIncident,
   getIncidentById
 } from "./incidentTimelineService";
+import { deliverAlertNotification } from "./notificationService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -226,6 +227,9 @@ export function evaluateThresholds(
       io.emit("alert:fired", alert);
       io.emit("incident:created", incident);
       console.log(`[ALERT ENGINE] Fired: ${rule.name} on ${service} (value=${value}, threshold=${rule.threshold}). Created incident ${incident.id}`);
+
+      // Deliver to configured channels (Slack, Discord, PagerDuty, etc.)
+      deliverAlertNotification(alert).catch(err => console.error("Notification Delivery Failed:", err));
 
       // Auto-escalate critical alerts after 5 minutes
       if (severity === "critical") {

@@ -7,6 +7,7 @@ import { infrastructureRouter } from "./infrastructureRoutes";
 import { analyticsRoutes } from "./analyticsRoutes";
 import { opsRoutes } from "./opsRoutes";
 import { agentRouter } from "./agentRoutes";
+import scenarioRouter from "./scenarioRoutes";
 
 export const apiRoutes = Router();
 
@@ -18,3 +19,4 @@ apiRoutes.use("/infrastructure", infrastructureRouter);
 apiRoutes.use("/analytics", analyticsRoutes);
 apiRoutes.use("/ops", opsRoutes);
 apiRoutes.use("/agent", agentRouter);
+apiRoutes.use("/scenarios", scenarioRouter);
