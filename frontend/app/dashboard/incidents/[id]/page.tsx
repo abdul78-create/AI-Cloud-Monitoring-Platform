@@ -141,6 +141,7 @@ export default function IncidentDetailPage() {
     if (params.id) {
       fetchIncident();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   useEffect(() => {

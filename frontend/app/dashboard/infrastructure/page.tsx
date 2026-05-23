@@ -231,6 +231,7 @@ export default function RealInfrastructurePage() {
       const interval = setInterval(fetchFleetAgents, 5000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // ─── WebSockets Real-time Updates ───────────────────────────────────────────

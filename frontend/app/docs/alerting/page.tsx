@@ -20,7 +20,7 @@ export default function AlertingDoc() {
           <pre className="text-sm text-slate-300 font-mono">
             <code>{"{"}
   "metric": "cpu",
-  "condition": ">",
+  "condition": "&gt;",
   "threshold": 90,
   "duration": "5m"
 {"}"}</code>
