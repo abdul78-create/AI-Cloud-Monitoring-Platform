@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: transparent; }
+      .box { fill: #121214; stroke: #27272a; stroke-width: 2px; rx: 8px; }
+      .box-hover:hover { stroke: #8b5cf6; }
+      .text-title { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; fill: #fafafa; }
+      .text-sub { font-family: 'Inter', sans-serif; font-size: 11px; fill: #a1a1aa; }
+      .line { fill: none; stroke: #3f3f46; stroke-width: 2px; }
+      .pulse-line { fill: none; stroke: #8b5cf6; stroke-width: 2px; stroke-dasharray: 6 6; animation: dash 20s linear infinite; }
+      .pulse-dot { fill: #a78bfa; filter: drop-shadow(0 0 4px #8b5cf6); animation: pulse 2s infinite; }
+      
+      @keyframes dash {
+        to { stroke-dashoffset: -1000; }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(1.5); }
+      }
+    </style>
+    
+    <linearGradient id="grad-agent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#121214" stop-opacity="1" />
+    </linearGradient>
+
+    <linearGradient id="grad-ai" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#121214" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+
+  <rect class="bg" width="1000" height="400" />
+
+  <!-- Paths -->
+  <path class="line" d="M 120 200 L 220 200" />
+  <path class="pulse-line" d="M 120 200 L 220 200" />
+  
+  <path class="line" d="M 360 200 L 420 200" />
+  <path class="pulse-line" d="M 360 200 L 420 200" />
+  
+  <path class="line" d="M 520 200 L 580 200" />
+  <path class="pulse-line" d="M 520 200 L 580 200" />
+
+  <path class="line" d="M 740 200 L 820 200" />
+  <path class="pulse-line" d="M 740 200 L 820 200" />
+
+  <!-- Vertical splits for Endpoints -->
+  <path class="line" d="M 960 160 L 960 240" />
+  <path class="line" d="M 920 160 L 960 160" />
+  <path class="line" d="M 920 240 L 960 240" />
+  <path class="pulse-line" d="M 920 160 L 960 160" />
+  <path class="pulse-line" d="M 920 240 L 960 240" />
+
+  <!-- Nodes -->
+  
+  <!-- 1. Infrastructure -->
+  <g transform="translate(20, 160)" class="box-hover">
+    <rect class="box" width="100" height="80" />
+    <text x="50" y="35" text-anchor="middle" class="text-title">Infra Nodes</text>
+    <text x="50" y="55" text-anchor="middle" class="text-sub">Docker/K8s</text>
+    <circle cx="50" cy="70" r="3" class="pulse-dot" />
+  </g>
+
+  <!-- 2. Agent -->
+  <g transform="translate(220, 150)" class="box-hover">
+    <rect class="box" width="140" height="100" style="fill: url(#grad-agent);" />
+    <text x="70" y="45" text-anchor="middle" class="text-title">cloudai-agent</text>
+    <text x="70" y="65" text-anchor="middle" class="text-sub">eBPF Telemetry</text>
+    <circle cx="130" cy="50" r="3" fill="#3b82f6" />
+  </g>
+
+  <!-- 3. Redis Queue -->
+  <g transform="translate(420, 160)" class="box-hover">
+    <rect class="box" width="100" height="80" />
+    <text x="50" y="35" text-anchor="middle" class="text-title">Redis</text>
+    <text x="50" y="55" text-anchor="middle" class="text-sub">Message Queue</text>
+  </g>
+
+  <!-- 4. Workers & AI Engine -->
+  <g transform="translate(580, 130)" class="box-hover">
+    <rect class="box" width="160" height="140" style="fill: url(#grad-ai);" />
+    <text x="80" y="40" text-anchor="middle" class="text-title">AI Correlation</text>
+    <text x="80" y="60" text-anchor="middle" class="text-sub">Anomaly Detection</text>
+    <line x1="20" y1="80" x2="140" y2="80" class="line" stroke-dasharray="2 2" />
+    <text x="80" y="100" text-anchor="middle" class="text-title" style="font-size: 12px;">Telemetry Workers</text>
+    <text x="80" y="115" text-anchor="middle" class="text-sub">Stream Processing</text>
+  </g>
+
+  <!-- 5. Gateway -->
+  <g transform="translate(820, 160)" class="box-hover">
+    <rect class="box" width="100" height="80" />
+    <text x="50" y="35" text-anchor="middle" class="text-title">WebSocket</text>
+    <text x="50" y="55" text-anchor="middle" class="text-sub">Gateway</text>
+  </g>
+
+  <!-- 6. Endpoints -->
+  <g transform="translate(960, 130)">
+    <rect class="box" width="20" height="60" />
+    <text x="10" y="35" text-anchor="middle" class="text-sub" transform="rotate(-90 10,30)">Dashboard</text>
+  </g>
+  <g transform="translate(960, 210)">
+    <rect class="box" width="20" height="60" />
+    <text x="10" y="35" text-anchor="middle" class="text-sub" transform="rotate(-90 10,30)">Alerts</text>
+  </g>
+
+</svg>

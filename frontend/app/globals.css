@@ -563,3 +563,41 @@ button { user-select: none; }
   background: var(--border-default);
   width: 100%;
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Violet / Purple Brand Tokens (Landing Page)
+────────────────────────────────────────────────────────────── */
+:root {
+  --violet-50:  #f5f3ff;
+  --violet-100: #ede9fe;
+  --violet-400: #a78bfa;
+  --violet-500: #8b5cf6;
+  --violet-600: #7c3aed;
+  --violet-700: #6d28d9;
+  --violet-800: #5b21b6;
+}
+
+/* Section with subtle inset shadow */
+.shadow-section-inset-light {
+  box-shadow: inset 0 8px 24px rgba(0, 0, 0, 0.03),
+              inset 0 -8px 24px rgba(0, 0, 0, 0.02);
+}
+.dark .shadow-section-inset-light {
+  box-shadow: inset 0 8px 24px rgba(0, 0, 0, 0.25),
+              inset 0 -8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: linear-gradient(135deg, #1a0533 0%, #0f1a3d 40%, #0a1628 70%, #0d1f4a 100%);
+}
+
+/* Marquee animation for integrations */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+

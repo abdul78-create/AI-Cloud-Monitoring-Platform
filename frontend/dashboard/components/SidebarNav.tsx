@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
 import { TrustBadge } from "./TrustBadge";
+import { OrgSwitcher } from "./OrgSwitcher";
 
 type NavItem = {
   name: string;
@@ -26,8 +27,6 @@ const FLAT_NAV_ITEMS: NavItem[] = [
   { name: "Alerts", icon: Bell, href: "/dashboard/alerts" },
   { name: "AI Ops", icon: BrainCircuit, href: "/dashboard/ai-ops" },
   { name: "Integrations", icon: Plug2, href: "/dashboard/integrations" },
-  { name: "Architecture", icon: Network, href: "/dashboard/architecture" },
-  { name: "Guided Demo", icon: Play, href: "/dashboard/demo", badge: "NEW", badgeVariant: "live" },
   { name: "Docs", icon: BookOpen, href: "/docs" },
   { name: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
@@ -67,27 +66,15 @@ export const SidebarNav = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Brand */}
+        {/* Org Switcher / Brand */}
         <div
           style={{ borderBottom: "1px solid var(--border-default)" }}
-          className="flex items-center justify-between px-4 py-4"
+          className="p-3 relative"
         >
-          <div className="flex items-center gap-2">
-            <div
-              style={{ background: "var(--text-primary)", borderRadius: "6px" }}
-              className="h-6 w-6 flex items-center justify-center flex-shrink-0"
-            >
-              <Activity size={13} style={{ color: "var(--surface-0)" }} />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold leading-none tracking-tight" style={{ color: "var(--text-primary)" }}>
-                CloudAI
-              </p>
-            </div>
-          </div>
+          <OrgSwitcher />
           <button
             onClick={onClose}
-            className="rounded p-1 lg:hidden transition-colors"
+            className="absolute top-4 right-4 rounded p-1 lg:hidden transition-colors bg-white/10"
             style={{ color: "var(--text-secondary)" }}
           >
             <X size={14} />
@@ -173,7 +160,7 @@ export const SidebarNav = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         {/* Trust Badge */}
         <TrustBadge />
 
-        {/* Footer User Profile / Organization */}
+        {/* Footer User Profile */}
         <div
           style={{ borderTop: "1px solid var(--border-default)" }}
           className="px-4 py-3"
@@ -183,8 +170,8 @@ export const SidebarNav = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">A</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium truncate" style={{ color: "var(--text-primary)" }}>Acme Corp</p>
-              <p className="text-[10px] truncate" style={{ color: "var(--text-tertiary)" }}>Free Plan</p>
+              <p className="text-[12px] font-medium truncate" style={{ color: "var(--text-primary)" }}>Abdul</p>
+              <p className="text-[10px] truncate" style={{ color: "var(--text-tertiary)" }}>abdul@cloudai.dev</p>
             </div>
           </div>
         </div>

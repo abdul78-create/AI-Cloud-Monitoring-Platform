@@ -8,6 +8,7 @@ import { Key } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SidebarNav } from "@/dashboard/components/SidebarNav";
 import { TopNavbar } from "@/dashboard/components/TopNavbar";
+import { LiveStatusBar } from "@/dashboard/components/LiveStatusBar";
 import { AuthRequiredModal } from "@/components/AuthRequiredModal";
 import { ScenarioController } from "@/dashboard/components/ScenarioController";
 
@@ -72,6 +73,7 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
       <div className="lg:flex">
         <SidebarNav isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="min-w-0 flex-1 flex flex-col min-h-screen">
+          <LiveStatusBar />
           <TopNavbar onMenuToggle={() => setMenuOpen(true)} />
 
           {/* Offline / Reconnecting Alert Banner */}

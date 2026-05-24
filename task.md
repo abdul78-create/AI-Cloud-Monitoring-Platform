@@ -1,0 +1,15 @@
+- [x] Create `frontend/components/Layout.tsx` with sidebar navigation and layout wrapper
+- [x] Update routing in `frontend/app/router.tsx` to use new layout and tab panels
+- [x] Implement `pages/overview.tsx` with six compact widgets
+- [x] Refine `frontend/app/globals.css` (palette, utility classes, button styles)
+- [x] Add `frontend/components/Button.tsx` reusable component
+- [x] Add `frontend/public/architecture.svg` (static diagram) and `components/ArchitectureSection.tsx`
+- [x] Create `components/DemoWizard.tsx` stepper wizard for guided demo flow
+- [x] Add `components/TrustMetrics.tsx` with mock API fetch
+- [x] Add `components/ComparisonTable.tsx` for “Why CloudAI” positioning
+- [x] Create `components/VideoPlayer.tsx` accepting YouTube/MP4
+- [x] Add public demo credentials UI (copy buttons) in hero component
+- [x] Update landing page to include ArchitectureSection, ComparisonTable, VideoPlayer, and TrustMetrics
+- [x] Perform visual audit: spacing, colors, borders, shadows, responsiveness
+- [ ] Write Cypress tests for navigation and demo wizard
+- [ ] Update README with demo video placeholder instructions

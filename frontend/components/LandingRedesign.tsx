@@ -116,6 +116,7 @@ export default function LandingRedesign() {
 
       <main>
         <Hero />
+        <ScreenshotShowcase />
         <TrustBar />
         <HowItWorks />
         <ArchitectureDiagramSection />
@@ -285,7 +286,7 @@ function Hero() {
             className="flex flex-wrap items-center gap-3"
           >
             <Link
-              href="/dashboard"
+              href="/login"
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm group"
             >
               Start Monitoring
@@ -295,10 +296,10 @@ function Hero() {
               />
             </Link>
             <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors shadow-sm"
+              href="/login?demo=true"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors shadow-sm"
             >
-              Live Demo
+              Try Live Demo
             </Link>
             <a
               href="#how-it-works"
@@ -750,6 +751,7 @@ function ArchitectureDiagramSection() {
 function DemoVideoSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  const [playing, setPlaying] = useState(false);
 
   return (
     <section className="py-28 bg-white dark:bg-slate-950">
@@ -772,18 +774,92 @@ function DemoVideoSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative aspect-video rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center group cursor-pointer"
+          className="relative aspect-video rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center group"
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity group-hover:opacity-40" alt="Dashboard Preview" />
+          {/* Play button overlay */}
+          {!playing && (
+            <div 
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer group-hover:bg-black/30 transition-all"
+              onClick={() => setPlaying(true)}
+            >
+              <div className="w-16 h-16 rounded-full bg-violet-600 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(124,58,237,0.5)] group-hover:scale-110 transition-transform">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+              <p className="text-sm font-semibold text-white tracking-widest uppercase">Play Demo</p>
+            </div>
+          )}
           
-          <div className="relative z-20 w-20 h-20 rounded-full bg-indigo-600/90 text-white flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform shadow-lg">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          {/* The Video Element Placeholder */}
+          {playing ? (
+            <video 
+              src="/demo.mp4" 
+              autoPlay 
+              controls
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLVideoElement;
+                if (target && target.parentElement) {
+                  target.parentElement.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500">
+                      <p class="mb-2">⚠️ Missing video file</p>
+                      <p class="text-xs">Place your 90s demo recording at <code>public/demo.mp4</code></p>
+                    </div>
+                  `;
+                }
+              }}
+            />
+          ) : (
+            <div className="w-full h-full relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+              <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-50" alt="Dashboard Preview" />
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SCREENSHOT SHOWCASE
+// ─────────────────────────────────────────────────────────────
+function ScreenshotShowcase() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <section className="pt-12 pb-24 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
+      <div ref={ref} className="mx-auto max-w-7xl px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-900"
+        >
+          {/* Browser Chrome */}
+          <div className="h-10 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-rose-500" />
+              <div className="w-3 h-3 rounded-full bg-amber-500" />
+              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            </div>
+            <div className="ml-4 flex-1 flex justify-center">
+              <div className="bg-slate-200 dark:bg-slate-900 rounded-md py-1 px-32 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                mission-control.cloudai.dev
+              </div>
+            </div>
           </div>
           
-          <div className="absolute bottom-6 left-6 z-20 text-left">
-            <span className="badge badge-live mb-2 text-xs">90 Seconds</span>
-            <h3 className="text-xl font-bold text-white shadow-sm">End-to-End Incident Flow</h3>
+          {/* Actual Screenshot */}
+          <div className="relative aspect-[16/9] bg-slate-900">
+            <img 
+              src="/mission-control.png" 
+              alt="Mission Control Dashboard" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1600 900"><rect width="1600" height="900" fill="%230f172a"/><text x="800" y="450" font-family="monospace" font-size="24" fill="%2364748b" text-anchor="middle">Place real dashboard screenshot at public/mission-control.png</text></svg>';
+              }}
+            />
           </div>
         </motion.div>
       </div>

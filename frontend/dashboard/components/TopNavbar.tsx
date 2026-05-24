@@ -20,10 +20,10 @@ export const TopNavbar = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
 
   const metricPills = latest
     ? [
-        { label: "CPU",  value: `${latest.cpu.toFixed(0)}%`,   warn: latest.cpu > 80,    crit: latest.cpu > 90 },
-        { label: "MEM",  value: `${latest.memory.toFixed(0)}%`, warn: latest.memory > 80, crit: latest.memory > 90 },
-        { label: "RPS",  value: `${latest.requestsPerSec}`,    warn: false,              crit: false },
-        { label: "P99",  value: `${latest.latencyMs}ms`,       warn: latest.latencyMs > 200, crit: latest.latencyMs > 500 },
+        { label: "node_cpu_seconds_total",  value: `${latest.cpu.toFixed(0)}%`,   warn: latest.cpu > 80,    crit: latest.cpu > 90 },
+        { label: "container_memory_usage_bytes",  value: `${latest.memory.toFixed(0)}%`, warn: latest.memory > 80, crit: latest.memory > 90 },
+        { label: "redis_connected_clients",  value: `${latest.requestsPerSec}`,    warn: false,              crit: false },
+        { label: "api_gateway_p95_latency",  value: `${latest.latencyMs}ms`,       warn: latest.latencyMs > 200, crit: latest.latencyMs > 500 },
       ]
     : [];
 
@@ -77,7 +77,7 @@ export const TopNavbar = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
                   : "var(--text-secondary)",
               }}
             >
-              <span className="text-[9px] font-bold uppercase" style={{ opacity: 0.65 }}>
+              <span className="text-[9px] font-bold lowercase" style={{ opacity: 0.65 }}>
                 {label}
               </span>
               <span className="font-semibold">{value}</span>
