@@ -3,16 +3,48 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowRight, Globe, Shield, Zap, Users, Building, Server, Sparkles } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function OnboardingClient() {
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState("");
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
 
   const steps = [
     { id: 1, name: "Workspace" },
     { id: 2, name: "Team" },
     { id: 3, name: "Connect" },
   ];
+
+  React.useEffect(() => {
+    if (step !== 3) return;
+    
+    setLogLines([]);
+    setIsConnected(false);
+    
+    const lines = [
+      "[SYS] 14:38:01 Initializing cloudai-agent daemon...",
+      "[SYS] 14:38:02 Connecting to control plane gateway at agent.aicloud.com...",
+      "[SYS] 14:38:03 Tunnel established. SSL Handshake completed.",
+      "[SYS] 14:38:03 Verifying authorization token key: bf7c5a6... OK",
+      "[SYS] 14:38:04 Host metadata: Ubuntu 22.04 LTS | 4 vCPU | 8GB RAM",
+      "[SUCCESS] Node cache-node-1 connected. Metric ingestion active!"
+    ];
+
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index < lines.length) {
+        setLogLines(p => [...p, lines[index]]);
+        index++;
+      } else {
+        setIsConnected(true);
+        clearInterval(timer);
+      }
+    }, 700);
+
+    return () => clearInterval(timer);
+  }, [step]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 relative overflow-hidden">
@@ -140,7 +172,7 @@ export default function OnboardingClient() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-5"
             >
               <div>
                 <h1 className="text-2xl font-bold font-display text-slate-900">Connect your First Node</h1>
@@ -148,16 +180,48 @@ export default function OnboardingClient() {
               </div>
 
               <div className="bg-slate-900 rounded-xl p-4 text-xs font-mono text-white relative">
-                <div className="flex justify-between items-center mb-2 text-slate-500">
+                <div className="flex justify-between items-center mb-2 text-slate-500 border-b border-slate-800 pb-1.5">
                   <span>Terminal</span>
-                  <button className="hover:text-white transition-colors">Copy</button>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText("curl -sS https://agent.aicloud.com/install.sh | sh -s -- --token bf7c5a6d8f");
+                      toast.success("Command copied to clipboard!");
+                    }}
+                    className="hover:text-white transition-colors"
+                  >
+                    Copy
+                  </button>
                 </div>
-                <code>curl -sS https://agent.aicloud.com/install.sh | sh -s -- --token bf7c5a6d8f...</code>
+                <code className="text-blue-400">curl -sS https://agent.aicloud.com/install.sh | sh -s -- --token bf7c5a6d8f...</code>
               </div>
 
-              <p className="text-xs text-slate-500 text-center">
-                Waiting for agent connection... <span className="text-indigo-600 font-bold animate-pulse">listening</span>
-              </p>
+              {/* simulated logs console */}
+              <div className="bg-slate-950 rounded-xl p-4 h-32 overflow-y-auto font-mono text-[10px] space-y-1 border border-slate-800">
+                {logLines.map((line, idx) => {
+                  const isSuccess = line.startsWith("[SUCCESS]");
+                  return (
+                    <div key={idx} className={isSuccess ? "text-emerald-400 font-bold" : "text-slate-300"}>
+                      {line}
+                    </div>
+                  );
+                })}
+                {!isConnected && (
+                  <div className="text-slate-500 animate-pulse">_</div>
+                )}
+              </div>
+
+              <div className="text-center">
+                {isConnected ? (
+                  <p className="text-xs text-emerald-600 font-bold flex items-center justify-center gap-1">
+                    <Check size={14} className="bg-emerald-100 rounded-full p-0.5" /> Agent connected successfully!
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 flex items-center justify-center gap-2">
+                    <span className="h-1.5 w-1.5 bg-indigo-500 rounded-full animate-ping" />
+                    Waiting for agent telemetry...
+                  </p>
+                )}
+              </div>
 
               <div className="flex gap-3">
                 <button
@@ -168,7 +232,8 @@ export default function OnboardingClient() {
                 </button>
                 <button
                   onClick={() => window.location.href = "/dashboard"}
-                  className="flex-1 bg-indigo-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-100"
+                  disabled={!isConnected}
+                  className="flex-1 bg-indigo-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Go to Dashboard <ArrowRight size={16} />
                 </button>

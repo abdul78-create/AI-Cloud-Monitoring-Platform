@@ -16,6 +16,7 @@ import { useMonitoringPolling } from "@/hooks/useMonitoringPolling";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
 import { OnboardingChecklist } from "@/dashboard/components/OnboardingChecklist";
+import { toast } from "react-hot-toast";
 
 /* ── CPU icon (not in lucide) ── */
 const CpuIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -146,6 +147,8 @@ export const DashboardRedesign = () => {
   const serviceHealth = useMonitoringStore(s => s.serviceHealth) ?? [];
   const timeline    = useMonitoringStore(s => s.timeline) ?? [];
   const rootCause   = useMonitoringStore(s => s.rootCause);
+  const dashboardError = useMonitoringStore(s => s.dashboardError);
+  const fetchDashboardData = useMonitoringStore(s => s.fetchDashboardData);
 
   const { liveMetrics, incidents } = useLiveEngineStore();
   const latest = liveMetrics[liveMetrics.length - 1];
@@ -201,6 +204,33 @@ export const DashboardRedesign = () => {
           </div>
         </div>
       </div>
+
+      {/* Error state fallback banner */}
+      {dashboardError && (
+        <div 
+          className="rounded-2xl border p-4 text-xs font-semibold flex items-center justify-between gap-3 animate-enter"
+          style={{
+            background: "var(--color-error-bg)",
+            borderColor: "var(--color-error-border)",
+            color: "var(--color-error)"
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} />
+            <span>{dashboardError}</span>
+          </div>
+          <button
+            onClick={async () => {
+              const tid = toast.loading("Retrying telemetry sync...");
+              await fetchDashboardData(true);
+              toast.success("Telemetry re-synchronized.", { id: tid });
+            }}
+            className="btn btn-outlined py-1 px-3 text-[10px] font-bold border-rose-500 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+          >
+            Retry Now
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* 1. Active Incidents */}

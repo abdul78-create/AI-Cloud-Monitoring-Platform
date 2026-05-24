@@ -64,8 +64,20 @@ export function useLiveEngine() {
     console.log("[LIVE ENGINE] Socket disconnected, using local simulation");
     // — Metrics tick every 2.5s
     const metricInterval = setInterval(() => {
-      const metric = generateNextMetric();
-      useLiveEngineStore.setState(s => ({
+      const state = useLiveEngineStore.getState();
+      const activeScenario = state.activeScenario;
+      const scenarioTick = state.scenarioTick;
+
+      const metric = generateNextMetric(activeScenario, scenarioTick);
+
+      // Increment tick if simulating
+      if (activeScenario) {
+        useLiveEngineStore.setState((s) => ({
+          scenarioTick: s.scenarioTick + 1,
+        }));
+      }
+
+      useLiveEngineStore.setState((s) => ({
         liveMetrics: [...s.liveMetrics.slice(-59), metric],
       }));
     }, 2500);
@@ -73,16 +85,17 @@ export function useLiveEngine() {
 
     // — Incident generation every 8s
     const incidentInterval = setInterval(() => {
-      const incident = maybeGenerateIncident();
+      const state = useLiveEngineStore.getState();
+      const incident = maybeGenerateIncident(state.activeScenario, state.scenarioTick);
       if (incident) {
-        useLiveEngineStore.setState(s => ({
+        useLiveEngineStore.setState((s) => ({
           incidents: [incident, ...s.incidents].slice(0, 50),
         }));
         // Also push to global timeline
         addTimelineEvent({
-          type: incident.type === 'critical' ? 'critical' :
-                incident.type === 'security' ? 'warning' :
-                incident.type === 'recovery' ? 'info' : 'info',
+          type: incident.type === "critical" ? "critical" :
+                incident.type === "security" ? "warning" :
+                incident.type === "recovery" ? "info" : "info",
           message: `[${incident.service}] ${incident.title}: ${incident.message}`,
         });
       }
@@ -91,8 +104,9 @@ export function useLiveEngine() {
 
     // — Log streaming every 1.2s
     const logInterval = setInterval(() => {
-      const entry = generateLogEntry();
-      useLiveEngineStore.setState(s => ({
+      const state = useLiveEngineStore.getState();
+      const entry = generateLogEntry(state.activeScenario, state.scenarioTick);
+      useLiveEngineStore.setState((s) => ({
         logs: [entry, ...s.logs].slice(0, 200),
       }));
     }, 1200);
@@ -101,7 +115,7 @@ export function useLiveEngine() {
     // — AI insight refresh every 18s
     const insightInterval = setInterval(() => {
       const insight = generateAIInsight();
-      useLiveEngineStore.setState(s => ({
+      useLiveEngineStore.setState((s) => ({
         aiInsights: [insight, ...s.aiInsights].slice(0, 20),
       }));
     }, 18000);
@@ -110,21 +124,21 @@ export function useLiveEngine() {
     // Seed immediately
     for (let i = 0; i < 30; i++) {
       const metric = generateNextMetric();
-      useLiveEngineStore.setState(s => ({
+      useLiveEngineStore.setState((s) => ({
         liveMetrics: [...s.liveMetrics, metric],
       }));
     }
     // Seed initial insights
     for (let i = 0; i < 4; i++) {
       const insight = generateAIInsight();
-      useLiveEngineStore.setState(s => ({
+      useLiveEngineStore.setState((s) => ({
         aiInsights: [...s.aiInsights, insight],
       }));
     }
     // Seed initial logs
     for (let i = 0; i < 20; i++) {
       const log = generateLogEntry();
-      useLiveEngineStore.setState(s => ({
+      useLiveEngineStore.setState((s) => ({
         logs: [...s.logs, log],
       }));
     }
@@ -141,6 +155,8 @@ interface LiveEngineState {
   incidents: LiveIncident[];
   logs: LiveLogEntry[];
   aiInsights: AIInsight[];
+  activeScenario: string | null;
+  scenarioTick: number;
 }
 
 export const useLiveEngineStore = create<LiveEngineState>(() => ({
@@ -148,4 +164,6 @@ export const useLiveEngineStore = create<LiveEngineState>(() => ({
   incidents: [],
   logs: [],
   aiInsights: [],
+  activeScenario: null,
+  scenarioTick: 0,
 }));

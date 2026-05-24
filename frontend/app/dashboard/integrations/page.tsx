@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2, AlertTriangle, ExternalLink, X, ArrowRight, Settings,
   Server, Box, Network, Cloud, GitBranch, Bell, Database, Activity,
-  MessageSquare, Terminal, BarChart2, Code
+  MessageSquare, Terminal, BarChart2, Code, Lock, RefreshCw
 } from "lucide-react";
+import { useMonitoringStore } from "@/store/useMonitoringStore";
+import toast from "react-hot-toast";
 
 interface Integration {
   id: string;
@@ -63,11 +65,49 @@ function StatusBadge({ status }: { status: Integration["status"] }) {
 export default function IntegrationsPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
 
-  const filtered = INTEGRATIONS.filter(i => activeCategory === "All" || i.category === activeCategory);
-  const selected = INTEGRATIONS.find(i => i.id === selectedId);
+  const integrationStates = useMonitoringStore(s => s.integrationStates);
+  const toggleIntegration = useMonitoringStore(s => s.toggleIntegration);
+  const currentUserRole = useMonitoringStore(s => s.currentUserRole);
 
-  const connectedCount = INTEGRATIONS.filter(i => i.status === "connected").length;
+  const mappedIntegrations = useMemo(() => {
+    return INTEGRATIONS.map(integration => {
+      // Keep "coming_soon" as is, otherwise resolve dynamically from Zustand store
+      const status = integration.status === "coming_soon" 
+        ? "coming_soon" 
+        : (integrationStates[integration.id] || "not_connected");
+      return { ...integration, status };
+    });
+  }, [integrationStates]);
+
+  const filtered = mappedIntegrations.filter(i => activeCategory === "All" || i.category === activeCategory);
+  const selected = mappedIntegrations.find(i => i.id === selectedId);
+  const connectedCount = mappedIntegrations.filter(i => i.status === "connected").length;
+
+  const handleConnect = (id: string) => {
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: Admin or SRE role required to connect integrations.");
+      return;
+    }
+    setConnectingId(id);
+    setTimeout(() => {
+      toggleIntegration(id, "connected");
+      setConnectingId(null);
+      setSelectedId(null);
+      toast.success(`${INTEGRATIONS.find(i => i.id === id)?.name} integration configured and connected!`);
+    }, 1500);
+  };
+
+  const handleDisconnect = (id: string) => {
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: Admin or SRE role required to modify integrations.");
+      return;
+    }
+    toggleIntegration(id, "not_connected");
+    setSelectedId(null);
+    toast.success(`${INTEGRATIONS.find(i => i.id === id)?.name} integration disconnected.`);
+  };
 
   return (
     <div className="space-y-6">
@@ -81,12 +121,12 @@ export default function IntegrationsPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-sm text-slate-600 dark:text-slate-400">
-            <span className="font-bold text-slate-900 dark:text-white">{connectedCount}</span> of {INTEGRATIONS.length} connected
+            <span className="font-bold text-slate-900 dark:text-white">{connectedCount}</span> of {INTEGRATIONS.filter(i => i.status !== "coming_soon").length} active connected
           </div>
           <div className="h-1.5 w-32 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all"
-              style={{ width: `${(connectedCount / INTEGRATIONS.length) * 100}%` }}
+              style={{ width: `${(connectedCount / INTEGRATIONS.filter(i => i.status !== "coming_soon").length) * 100}%` }}
             />
           </div>
         </div>
@@ -132,7 +172,14 @@ export default function IntegrationsPage() {
                   <integration.icon size={20} className={integration.iconColor} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{integration.name}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    {integration.name}
+                    {currentUserRole === "Developer" && integration.status !== "coming_soon" && (
+                      <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1 rounded font-normal select-none" title="Requires SRE or Admin to modify">
+                        Read-only
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[11px] text-slate-500">{integration.category}</p>
                 </div>
               </div>
@@ -214,17 +261,37 @@ export default function IntegrationsPage() {
               <div className="flex gap-3">
                 {selected.status === "connected" ? (
                   <>
-                    <button className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => toast.success(`Configuration settings open for ${selected.name}`)}
+                      className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                    >
                       <Settings size={14} /> Settings
                     </button>
-                    <button className="flex-1 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-sm font-semibold text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors">
-                      Disconnect
+                    <button 
+                      onClick={() => handleDisconnect(selected.id)}
+                      title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                      className="flex-1 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-sm font-semibold text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      Disconnect {currentUserRole === "Developer" && <Lock size={12} className="text-red-500/80 dark:text-red-400/80" />}
                     </button>
                   </>
                 ) : (
                   <>
-                    <button className="flex-1 px-4 py-2 bg-blue-600 text-sm font-semibold text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                      Connect Integration
+                    <button 
+                      onClick={() => handleConnect(selected.id)}
+                      disabled={connectingId === selected.id}
+                      title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-sm font-semibold text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {connectingId === selected.id ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" /> Connecting...
+                        </>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          Connect Integration {currentUserRole === "Developer" && <Lock size={12} className="text-white/80" />}
+                        </span>
+                      )}
                     </button>
                     <button className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 transition-colors">
                       <ExternalLink size={14} />

@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Activity, Wifi, WifiOff, BarChart2, FileText, Clock,
-  AlertTriangle, RefreshCw, TrendingUp, Filter
+  AlertTriangle, RefreshCw, TrendingUp, Filter, Server, CheckCircle2, ShieldAlert, Zap, Hammer, Lock
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
+import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { useLiveEngineStore } from "@/hooks/useLiveEngine";
+import toast from "react-hot-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +92,89 @@ const LEVEL_STYLE: Record<LogEntry["level"], { bg: string; color: string; dot: s
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function MonitoringPage() {
+  const { currentUserRole, addAuditLog, isErrorInjected } = useMonitoringStore();
+  const { incidents } = useLiveEngineStore();
+  const [recoveringServices, setRecoveringServices] = useState<Record<string, boolean>>({});
+
+  const servicesList = useMemo(() => {
+    const isRedisDegraded = incidents.some(i => i.service.toLowerCase().includes("redis") || i.service.toLowerCase().includes("cache"));
+    const isDbDegraded = incidents.some(i => i.service.toLowerCase().includes("db") || i.service.toLowerCase().includes("primary"));
+    
+    return [
+      {
+        name: "api-gateway",
+        status: isErrorInjected ? "critical" : "healthy",
+        latency: isErrorInjected ? "5020ms" : "42ms",
+        errorRate: isErrorInjected ? "98.2%" : "0.05%",
+        replicas: "3/3",
+        description: "Edge Routing Service"
+      },
+      {
+        name: "auth-service",
+        status: isErrorInjected ? "degraded" : "healthy",
+        latency: isErrorInjected ? "185ms" : "12ms",
+        errorRate: isErrorInjected ? "1.2%" : "0.00%",
+        replicas: "2/2",
+        description: "Session Verification"
+      },
+      {
+        name: "db-primary",
+        status: recoveringServices["db-primary"] ? "recovering" : (isDbDegraded ? "critical" : "healthy"),
+        latency: recoveringServices["db-primary"] ? "210ms" : (isDbDegraded ? "2100ms" : "64ms"),
+        errorRate: recoveringServices["db-primary"] ? "1.5%" : (isDbDegraded ? "18.4%" : "0.00%"),
+        replicas: "1/1",
+        description: "Postgres Core DB"
+      },
+      {
+        name: "cache-redis",
+        status: recoveringServices["cache-redis"] ? "recovering" : (isRedisDegraded ? "degraded" : "healthy"),
+        latency: recoveringServices["cache-redis"] ? "34ms" : (isRedisDegraded ? "850ms" : "8ms"),
+        errorRate: recoveringServices["cache-redis"] ? "0.2%" : (isRedisDegraded ? "12.4%" : "0.01%"),
+        replicas: "1/1",
+        description: "In-Memory Datastore"
+      },
+      {
+        name: "worker-queue",
+        status: "healthy",
+        latency: "115ms",
+        errorRate: "0.00%",
+        replicas: "4/4",
+        description: "Async Task Scheduler"
+      },
+      {
+        name: "analytics-svc",
+        status: "maintenance",
+        latency: "1480ms",
+        errorRate: "0.00%",
+        replicas: "2/2",
+        description: "Daily Metrics Rollups"
+      }
+    ];
+  }, [isErrorInjected, incidents, recoveringServices]);
+
+  const handleServiceRestart = (serviceName: string) => {
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: Admin or SRE role required to restart services.", { icon: "🚫" });
+      return;
+    }
+    toast.success(`Restart signal dispatched to '${serviceName}' container pool.`);
+    addAuditLog(`Dispatched container restart for service: ${serviceName}`, "system");
+    
+    setRecoveringServices(prev => ({ ...prev, [serviceName]: true }));
+    
+    setTimeout(() => {
+      setRecoveringServices(prev => ({ ...prev, [serviceName]: false }));
+      toast.success(`Service '${serviceName}' successfully restarted and healthy.`);
+      if (serviceName === "cache-redis") {
+        useMonitoringStore.setState({
+          rootCause: null,
+          playbook: null
+        });
+        useLiveEngineStore.setState({ incidents: [] });
+      }
+    }, 3000);
+  };
+
   const [metrics, setMetrics] = useState<MetricPoint[]>(() => seedMetrics(40));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logFilter, setLogFilter] = useState<LogEntry["level"] | "ALL">("ALL");
@@ -169,6 +255,86 @@ export default function MonitoringPage() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             LIVE
           </span>
+        </div>
+      </div>
+
+      {/* Service Health Matrix */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Server size={14} className="text-indigo-500" />
+            Service Health Matrix
+          </h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">Unified status, latency tracking, and operational action matrix across microservices.</p>
+        </div>
+
+        <div className="overflow-x-auto border border-slate-100 dark:border-slate-800/80 rounded-xl">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800/80">
+                <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-slate-400">Service</th>
+                <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-slate-400">Status</th>
+                <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-slate-400">P95 Latency</th>
+                <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-slate-400">Error Rate</th>
+                <th className="px-4 py-2.5 font-bold text-slate-500 dark:text-slate-400">Replicas</th>
+                <th className="px-4 py-2.5 text-right font-bold text-slate-500 dark:text-slate-400">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {servicesList.map((svc) => {
+                let badgeCls = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+                let statusLabel = svc.status;
+                let StatusIcon = CheckCircle2;
+                
+                if (svc.status === "critical") {
+                  badgeCls = "bg-rose-500/10 text-rose-500 border-rose-500/20 animate-pulse";
+                  StatusIcon = ShieldAlert;
+                } else if (svc.status === "degraded") {
+                  badgeCls = "bg-amber-500/10 text-amber-500 border-amber-500/20";
+                  StatusIcon = AlertTriangle;
+                } else if (svc.status === "recovering") {
+                  badgeCls = "bg-blue-500/10 text-blue-500 border-blue-500/20";
+                  StatusIcon = RefreshCw;
+                } else if (svc.status === "maintenance") {
+                  badgeCls = "bg-purple-500/10 text-purple-500 border-purple-500/20";
+                  StatusIcon = Hammer;
+                }
+
+                return (
+                  <tr key={svc.name} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-950/20">
+                    <td className="px-4 py-3.5">
+                      <div className="font-semibold text-slate-900 dark:text-white">{svc.name}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{svc.description}</div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${badgeCls}`}>
+                        <StatusIcon size={10} className={svc.status === "recovering" ? "animate-spin" : ""} />
+                        {statusLabel.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-900 dark:text-white font-medium">{svc.latency}</td>
+                    <td className="px-4 py-3.5 font-mono text-slate-500">{svc.errorRate}</td>
+                    <td className="px-4 py-3.5 font-mono text-slate-500">{svc.replicas}</td>
+                    <td className="px-4 py-3.5 text-right">
+                      {svc.status === "maintenance" ? (
+                        <span className="text-[10px] text-slate-400 font-semibold px-2">Silenced</span>
+                      ) : (
+                        <button
+                          onClick={() => handleServiceRestart(svc.name)}
+                          disabled={svc.status === "recovering"}
+                          title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                          className="px-2.5 py-1 text-[10px] font-bold border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 ml-auto disabled:opacity-50"
+                        >
+                          <RefreshCw size={10} className={svc.status === "recovering" ? "animate-spin" : ""} />
+                          Restart {currentUserRole === "Developer" && <Lock size={9} className="text-slate-400" />}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

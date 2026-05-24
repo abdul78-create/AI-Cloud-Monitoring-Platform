@@ -5,6 +5,15 @@ import { api, getWithCache, unwrap } from "@/services/api";
 import { ApiAlert, ApiAnalytics, ApiInfrastructure, ApiMetricPoint, LogAnalysisResult } from "@/types";
 import { io, Socket } from "socket.io-client";
 import { parseLogForSimulation } from "@/lib/logParser";
+import toast from "react-hot-toast";
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  category: "auth" | "system" | "ssh" | "settings" | "node";
+}
 
 type MonitoringState = {
   metrics: ApiMetricPoint[];
@@ -27,6 +36,25 @@ type MonitoringState = {
   connectionStatus: "connected" | "disconnected" | "reconnecting";
   isSimulating: boolean;
   setIsSimulating: (val: boolean) => void;
+  
+  // Phase 5 Additions
+  integrationStates: Record<string, "connected" | "not_connected" | "coming_soon">;
+  toggleIntegration: (id: string, status: "connected" | "not_connected") => void;
+  
+  telemetryRefreshRate: number;
+  setTelemetryRefreshRate: (rate: number) => void;
+  
+  currentUserRole: "Admin" | "SRE" | "Developer";
+  setCurrentUserRole: (role: "Admin" | "SRE" | "Developer") => void;
+  
+  alertsEnabled: boolean;
+  setAlertsEnabled: (val: boolean) => void;
+  
+  isErrorInjected: boolean;
+  setIsErrorInjected: (val: boolean) => void;
+  
+  auditLogs: AuditLogEntry[];
+  addAuditLog: (action: string, category?: AuditLogEntry["category"], user?: string) => void;
   
   fetchDashboardData: (initial?: boolean) => Promise<void>;
   fetchServiceHealth: () => Promise<void>;
@@ -68,6 +96,78 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     { id: "4", type: "info", message: "Deploy 'v1.2.4' started by user 'ops_admin'.", timestamp: new Date(Date.now() - 45000) },
   ],
 
+  // Phase 5 additions defaults
+  integrationStates: {
+    aws: "connected",
+    gcp: "not_connected",
+    azure: "not_connected",
+    docker: "connected",
+    kubernetes: "connected",
+    linux: "connected",
+    github: "connected",
+    jenkins: "not_connected",
+    postgres: "connected",
+    redis: "connected",
+    slack: "connected",
+    pagerduty: "not_connected",
+    prometheus: "not_connected",
+    grafana: "coming_soon",
+    datadog: "coming_soon"
+  },
+  toggleIntegration: (id, status) => {
+    set((state) => {
+      const nextStates = { ...state.integrationStates, [id]: status };
+      return { integrationStates: nextStates };
+    });
+    get().addAuditLog(
+      `${status === "connected" ? "Connected" : "Disconnected"} integration: ${id}`,
+      "settings"
+    );
+  },
+  
+  telemetryRefreshRate: 5000,
+  setTelemetryRefreshRate: (rate) => {
+    set({ telemetryRefreshRate: rate });
+    get().addAuditLog(`Telemetry refresh interval updated to ${rate}ms`, "settings");
+  },
+  
+  currentUserRole: "Admin",
+  setCurrentUserRole: (role) => {
+    set({ currentUserRole: role });
+    get().addAuditLog(`User role updated to ${role}`, "settings");
+  },
+  
+  alertsEnabled: true,
+  setAlertsEnabled: (val) => {
+    set({ alertsEnabled: val });
+    get().addAuditLog(`Notification alerts ${val ? "enabled" : "silenced"}`, "settings");
+  },
+  
+  isErrorInjected: false,
+  setIsErrorInjected: (val) => {
+    set({ isErrorInjected: val });
+    get().addAuditLog(`Simulated error injection ${val ? "activated" : "deactivated"}`, "system");
+  },
+  
+  auditLogs: [
+    { id: "1", timestamp: new Date(Date.now() - 3600000).toISOString(), user: "admin@enterprise.com", action: "User session initialized", category: "auth" },
+    { id: "2", timestamp: new Date(Date.now() - 3000000).toISOString(), user: "admin@enterprise.com", action: "Connected Slack notification integration", category: "settings" },
+    { id: "3", timestamp: new Date(Date.now() - 1800000).toISOString(), user: "system", action: "Hourly security scan pass: 0 leaks identified", category: "system" }
+  ],
+  addAuditLog: (action, category = "system", user) => {
+    const defaultUser = get().currentUserRole === "Developer" ? "dev@enterprise.com" : "admin@enterprise.com";
+    const newEntry: AuditLogEntry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      user: user || defaultUser,
+      action,
+      category
+    };
+    set((state) => ({
+      auditLogs: [newEntry, ...state.auditLogs].slice(0, 100) // Keep last 100 logs
+    }));
+  },
+
   addTimelineEvent: (event) => {
     set((state) => ({
       timeline: [
@@ -99,6 +199,19 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
       dashboardRefreshing: !initial,
       dashboardError: null
     }));
+    
+    // Simulated Error Injection Check
+    if (get().isErrorInjected) {
+      await new Promise((r) => setTimeout(r, 1200)); // Simulate loading delay
+      set({
+        dashboardLoading: false,
+        dashboardRefreshing: false,
+        dashboardError: "[504 Gateway Timeout] Simulated API degradation active. Verify backend telemetry streams."
+      });
+      toast.error("API Fetch Timeout: Telemetry stream degraded.");
+      return;
+    }
+    
     try {
       const [metricsRes, infraRes, alertsRes, analyticsRes, healthRes] = await Promise.all([
         api.get("/metrics"),
@@ -206,6 +319,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
         rootCause: simulation.rootCause || null,
         playbook: simulation.playbook || null
       });
+      
+      get().addAuditLog(`Uploaded log file ${file.name} for AI diagnosis`, "ssh");
     } catch (error) {
       set({
         isUploading: false,
@@ -219,3 +334,4 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
 
 
 }));
+

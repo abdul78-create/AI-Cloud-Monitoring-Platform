@@ -77,7 +77,7 @@ export default function SecurityCenterPage() {
           </div>
         </div>
 
-        {/* Attack Map Mock */}
+        {/* Attack Map */}
         <div className="lg:col-span-3 glass-card rounded-2xl p-6 border-white/80 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -90,17 +90,91 @@ export default function SecurityCenterPage() {
             </div>
           </div>
 
-          <div className="h-[200px] bg-slate-900 rounded-xl flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:2rem_2rem]" />
-            <div className="relative text-white/50 text-sm flex flex-col items-center gap-2">
-              <Globe size={32} className="text-indigo-500" />
-              <span>World Map Visualization Placeholder</span>
-              <span className="text-xs text-white/30">Showing 4 active blocks from Russia, China, and US.</span>
-            </div>
+          <div className="h-[280px] bg-slate-950 rounded-xl relative overflow-hidden border border-slate-800">
+            {/* World grid background */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]" />
             
-            {/* Ping lines or dots can be added with CSS or SVGs */}
-            <div className="absolute top-1/4 left-1/4 h-2 w-2 bg-rose-500 rounded-full animate-ping" />
-            <div className="absolute bottom-1/3 right-1/3 h-2 w-2 bg-amber-500 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
+            <svg className="w-full h-full" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
+              {/* World outlines representing continents */}
+              <circle cx="200" cy="120" r="40" fill="currentColor" className="text-slate-900" />
+              <circle cx="280" cy="160" r="30" fill="currentColor" className="text-slate-900" />
+              <circle cx="340" cy="280" r="35" fill="currentColor" className="text-slate-900" />
+              <circle cx="520" cy="120" r="30" fill="currentColor" className="text-slate-900" />
+              <circle cx="540" cy="240" r="35" fill="currentColor" className="text-slate-900" />
+              <circle cx="750" cy="140" r="60" fill="currentColor" className="text-slate-900" />
+              <circle cx="820" cy="190" r="45" fill="currentColor" className="text-slate-900" />
+              <circle cx="850" cy="300" r="25" fill="currentColor" className="text-slate-900" />
+
+              {/* Target Datacenter node (us-east-1) */}
+              <circle cx="350" cy="150" r="6" fill="#6366f1" />
+              <circle cx="350" cy="150" r="12" stroke="#6366f1" strokeWidth="1" fill="none" className="animate-ping" style={{ animationDuration: '3s' }} />
+              <text x="350" y="132" fill="#a5b4fc" fontSize="9" fontWeight="bold" textAnchor="middle" className="font-mono">US-EAST-1 (PROD)</text>
+
+              {/* Origin nodes */}
+              {[
+                { name: "Moscow, RU", x: 650, y: 110, color: "text-rose-500", labelX: 650, labelY: 95 },
+                { name: "Beijing, CN", x: 820, y: 160, color: "text-amber-500", labelX: 820, labelY: 145 },
+                { name: "Frankfurt, DE", x: 520, y: 130, color: "text-rose-500", labelX: 520, labelY: 115 },
+                { name: "Shenzhen, CN", x: 800, y: 200, color: "text-rose-500", labelX: 800, labelY: 185 },
+              ].map((origin, idx) => (
+                <g key={origin.name}>
+                  {/* Origin point */}
+                  <circle cx={origin.x} cy={origin.y} r="4" fill={origin.color === "text-rose-500" ? "#f43f5e" : "#f59e0b"} />
+                  <circle cx={origin.x} cy={origin.y} r="8" stroke={origin.color === "text-rose-500" ? "#f43f5e" : "#f59e0b"} strokeWidth="1" fill="none" className="animate-ping" style={{ animationDelay: `${idx * 0.8}s` }} />
+                  <text x={origin.labelX} y={origin.labelY} fill="#64748b" fontSize="8" textAnchor="middle" className="font-mono">{origin.name}</text>
+
+                  {/* Bezier curve connection vector to target */}
+                  <path 
+                    d={`M ${origin.x} ${origin.y} Q ${(origin.x + 350) / 2} ${(origin.y + 150) / 2 - 50} 350 150`}
+                    fill="none"
+                    stroke={origin.color === "text-rose-500" ? "url(#rose-grad)" : "url(#amber-grad)"}
+                    strokeWidth="1.5"
+                    strokeDasharray="8, 6"
+                    className="animate-dash"
+                    style={{
+                      strokeDashoffset: 100,
+                      animation: "dash 5s linear infinite",
+                      animationDelay: `${idx * 0.5}s`
+                    }}
+                  />
+                </g>
+              ))}
+
+              <defs>
+                <linearGradient id="rose-grad" x1="1" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f43f5e" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+                <linearGradient id="amber-grad" x1="1" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Custom CSS for dashboard attack map vectors */}
+            <style jsx>{`
+              @keyframes dash {
+                to {
+                  stroke-dashoffset: -100;
+                }
+              }
+              .animate-dash {
+                animation: dash 8s linear infinite !important;
+              }
+            `}</style>
+            
+            {/* Live panel stats */}
+            <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-800 p-2 rounded-lg text-[9px] font-mono text-slate-400 space-y-0.5">
+              <div className="flex gap-2">
+                <span className="text-slate-500">LAST EVENT:</span>
+                <span className="text-rose-400 font-bold">SQLi Attempt blocked from 203.0.113.5</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-slate-500">MITIGATION:</span>
+                <span className="text-emerald-400 font-bold">IP Isolated automatically by SRE Agent</span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Key } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -15,6 +15,7 @@ import { ScenarioController } from "@/dashboard/components/ScenarioController";
 import { useSocket } from "@/hooks/useSocket";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { useLiveEngine } from "@/hooks/useLiveEngine";
+import toast from "react-hot-toast";
 
 const AIAssistant = dynamic(
   () => import("@/dashboard/components/AIAssistant").then(m => m.AIAssistant),
@@ -36,6 +37,8 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { theme, setTheme, connectionStatus } = useMonitoringStore();
   const pathname = usePathname();
+  const router = useRouter();
+  const lastKeyRef = useRef<{ key: string; time: number } | null>(null);
 
   useSocket();
   useLiveEngine(); // Mount the real-time simulation engine
@@ -51,19 +54,46 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
       if (
         document.activeElement?.tagName === "INPUT" ||
         document.activeElement?.tagName === "TEXTAREA" ||
-        document.activeElement?.tagName === "SELECT"
+        document.activeElement?.tagName === "SELECT" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
       ) {
         return;
       }
+      
       if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         setShortcutsOpen(o => !o);
+        return;
       } else if (e.key === "Escape") {
         setShortcutsOpen(false);
+        return;
+      }
+
+      const now = Date.now();
+      const last = lastKeyRef.current;
+
+      if (e.key.toLowerCase() === "g") {
+        lastKeyRef.current = { key: "g", time: now };
+      } else if (last && last.key === "g" && now - last.time < 1000) {
+        lastKeyRef.current = null;
+        const target = e.key.toLowerCase();
+        if (target === "d") {
+          router.push("/dashboard");
+          toast.success("Navigated to Overview Dashboard", { icon: "📊" });
+        } else if (target === "l") {
+          router.push("/dashboard/live");
+          toast.success("Navigated to Live Telemetry Stream", { icon: "📈" });
+        } else if (target === "a") {
+          router.push("/dashboard/ai-ops");
+          toast.success("Navigated to AI Operations Center", { icon: "🧠" });
+        } else if (target === "s") {
+          router.push("/dashboard/settings");
+          toast.success("Navigated to System Settings", { icon: "⚙️" });
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [router]);
 
   return (
     <div

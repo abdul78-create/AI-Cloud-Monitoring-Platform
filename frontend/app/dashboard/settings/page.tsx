@@ -4,18 +4,27 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings, Bell, Brain, User, Shield, Zap, Save, RefreshCw, Moon, Sun,
-  Key, Plus, Trash2, Sliders, Play, Check, AlertTriangle, Users, Mail, Clock
+  Key, Plus, Trash2, Sliders, Play, Check, AlertTriangle, Users, Mail, Clock, Lock
 } from "lucide-react";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 
-type Tab = "account" | "billing" | "notifications" | "thresholds" | "apikeys" | "team";
+type Tab = "account" | "billing" | "notifications" | "thresholds" | "apikeys" | "team" | "audit";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const openAuthModal = useMonitoringStore(s => s.openAuthModal);
-  const { theme, setTheme } = useMonitoringStore();
+  
+  const { 
+    theme, setTheme,
+    telemetryRefreshRate, setTelemetryRefreshRate,
+    currentUserRole, setCurrentUserRole,
+    alertsEnabled, setAlertsEnabled,
+    isErrorInjected, setIsErrorInjected,
+    auditLogs, addAuditLog
+  } = useMonitoringStore();
+
   const [activeTab, setActiveTab] = useState<Tab>("account");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isStripeLoading, setIsStripeLoading] = useState(false);
@@ -58,6 +67,7 @@ export default function SettingsPage() {
   const handleSave = () => {
     checkGuestMode(() => {
       setSaveSuccess(true);
+      addAuditLog("Saved general settings modifications", "settings");
       setTimeout(() => {
         setSaveSuccess(false);
         toast.success("Settings saved successfully!");
@@ -77,6 +87,10 @@ export default function SettingsPage() {
 
   const handleGenerateKey = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: SRE or Admin permissions required to manage API Keys.", { icon: "🚫" });
+      return;
+    }
     checkGuestMode(() => {
       if (!newKeyName.trim()) return;
       const randomHex = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
@@ -89,18 +103,31 @@ export default function SettingsPage() {
       setApiKeys([...apiKeys, newKey]);
       setNewKeyName("");
       toast.success("API key generated successfully!");
+      addAuditLog(`Generated API Access key: ${newKeyName}`, "settings");
     });
   };
 
   const handleDeleteKey = (id: string) => {
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: SRE or Admin permissions required to manage API Keys.", { icon: "🚫" });
+      return;
+    }
     checkGuestMode(() => {
+      const keyToDelete = apiKeys.find(k => k.id === id);
       setApiKeys(apiKeys.filter(k => k.id !== id));
       toast.success("API key revoked");
+      if (keyToDelete) {
+        addAuditLog(`Revoked API Access key: ${keyToDelete.name}`, "settings");
+      }
     });
   };
 
   const handleAddTeam = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: SRE or Admin permissions required to manage Team Members.", { icon: "🚫" });
+      return;
+    }
     checkGuestMode(() => {
       if (!newMemberEmail.trim()) return;
       if (team.some(t => t.email.toLowerCase() === newMemberEmail.toLowerCase())) {
@@ -110,13 +137,19 @@ export default function SettingsPage() {
       setTeam([...team, { email: newMemberEmail, role: newMemberRole, status: "Active" }]);
       setNewMemberEmail("");
       toast.success("Invitation sent successfully!");
+      addAuditLog(`Invited team member: ${newMemberEmail} (${newMemberRole})`, "settings");
     });
   };
 
   const handleRemoveTeam = (email: string) => {
+    if (currentUserRole === "Developer") {
+      toast.error("Access Denied: SRE or Admin permissions required to manage Team Members.", { icon: "🚫" });
+      return;
+    }
     checkGuestMode(() => {
       setTeam(team.filter(t => t.email !== email));
       toast.success("Team member removed");
+      addAuditLog(`Removed team member: ${email}`, "settings");
     });
   };
 
@@ -146,6 +179,7 @@ export default function SettingsPage() {
             { id: "thresholds",    label: "Alert Rules",   icon: Sliders },
             { id: "apikeys",       label: "API Access",    icon: Key },
             { id: "team",          label: "Team Members",  icon: Users },
+            { id: "audit",         label: "Audit Logs",    icon: Clock },
           ].map(tab => {
             const active = activeTab === tab.id;
             return (
@@ -230,36 +264,93 @@ export default function SettingsPage() {
 
                   <div className="divider" />
 
-                  {/* Theme toggler */}
-                  <div>
-                    <label className="block text-[11px] font-semibold uppercase mb-2.5" style={{ color: "var(--text-secondary)" }}>
-                      Display Theme
-                    </label>
-                    <div className="flex gap-3 max-w-[280px]">
-                      <button
-                        onClick={() => setTheme("light")}
-                        className="flex-1 btn flex items-center justify-center gap-1.5 py-2 px-3 text-xs"
-                        style={{
-                          background: theme === "light" ? "var(--brand-50)" : "transparent",
-                          borderColor: theme === "light" ? "var(--brand-600)" : "var(--border-default)",
-                          color: theme === "light" ? "var(--brand-600)" : "var(--text-secondary)",
-                        }}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Theme toggler */}
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase mb-2.5" style={{ color: "var(--text-secondary)" }}>
+                        Display Theme
+                      </label>
+                      <div className="flex gap-3 max-w-[280px]">
+                        <button
+                          onClick={() => setTheme("light")}
+                          className="flex-1 btn flex items-center justify-center gap-1.5 py-2 px-3 text-xs"
+                          style={{
+                            background: theme === "light" ? "var(--brand-50)" : "transparent",
+                            borderColor: theme === "light" ? "var(--brand-600)" : "var(--border-default)",
+                            color: theme === "light" ? "var(--brand-600)" : "var(--text-secondary)",
+                          }}
+                        >
+                          <Sun size={13} />
+                          Light
+                        </button>
+                        <button
+                          onClick={() => setTheme("dark")}
+                          className="flex-1 btn flex items-center justify-center gap-1.5 py-2 px-3 text-xs"
+                          style={{
+                            background: theme === "dark" ? "var(--brand-50)" : "transparent",
+                            borderColor: theme === "dark" ? "var(--brand-600)" : "var(--border-default)",
+                            color: theme === "dark" ? "var(--brand-600)" : "var(--text-secondary)",
+                          }}
+                        >
+                          <Moon size={13} />
+                          Dark
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Telemetry Refresh Rate */}
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase mb-2.5" style={{ color: "var(--text-secondary)" }}>
+                        Telemetry Refresh Interval
+                      </label>
+                      <select
+                        value={telemetryRefreshRate}
+                        onChange={(e) => setTelemetryRefreshRate(Number(e.target.value))}
+                        className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-3 py-2 text-xs focus:outline-none cursor-pointer text-[var(--text-primary)] w-full max-w-[280px]"
                       >
-                        <Sun size={13} />
-                        Light
-                      </button>
-                      <button
-                        onClick={() => setTheme("dark")}
-                        className="flex-1 btn flex items-center justify-center gap-1.5 py-2 px-3 text-xs"
-                        style={{
-                          background: theme === "dark" ? "var(--brand-50)" : "transparent",
-                          borderColor: theme === "dark" ? "var(--brand-600)" : "var(--border-default)",
-                          color: theme === "dark" ? "var(--brand-600)" : "var(--text-secondary)",
-                        }}
+                        <option value="2000">2 Seconds (High frequency)</option>
+                        <option value="5000">5 Seconds (Balanced - Default)</option>
+                        <option value="10000">10 Seconds (Low overhead)</option>
+                        <option value="30000">30 Seconds (Offline/Static)</option>
+                      </select>
+                    </div>
+
+                    {/* Current User Role Selector (RBAC) */}
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase mb-2.5" style={{ color: "var(--text-secondary)" }}>
+                        Access Role Policy (RBAC)
+                      </label>
+                      <select
+                        value={currentUserRole}
+                        onChange={(e) => setCurrentUserRole(e.target.value as any)}
+                        className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-3 py-2 text-xs focus:outline-none cursor-pointer text-[var(--text-primary)] w-full max-w-[280px]"
                       >
-                        <Moon size={13} />
-                        Dark
-                      </button>
+                        <option value="Admin">Admin (Full Write Access)</option>
+                        <option value="SRE">SRE (Operations Access)</option>
+                        <option value="Developer">Developer (Read-Only metrics)</option>
+                      </select>
+                      <p className="text-[10px] mt-1 text-slate-500 max-w-[280px]">
+                        Developer role blocks node restarts and integrations changes.
+                      </p>
+                    </div>
+
+                    {/* Fault Injection testing */}
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase mb-2.5 text-rose-500">
+                        Fault Injection testing
+                      </label>
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-red-200/40 bg-red-500/5 w-full max-w-[280px]">
+                        <div>
+                          <p className="text-xs font-bold text-rose-500 dark:text-rose-400">Simulate API Outage (504)</p>
+                          <p className="text-[9px]" style={{ color: "var(--text-tertiary)" }}>Forces gateway timeouts across dashboard.</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isErrorInjected}
+                          onChange={(e) => setIsErrorInjected(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -530,9 +621,13 @@ export default function SettingsPage() {
                       className="flex-1 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-md px-3 py-2 text-xs focus:outline-none"
                       style={{ color: "var(--text-primary)" }}
                     />
-                    <button type="submit" className="btn btn-primary flex items-center gap-1 py-2 px-3 text-xs">
+                    <button 
+                      type="submit" 
+                      title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                      className="btn btn-primary flex items-center gap-1 py-2 px-3 text-xs"
+                    >
                       <Plus size={13} />
-                      Generate Key
+                      Generate Key {currentUserRole === "Developer" && <Lock size={11} className="text-white/80 ml-1" />}
                     </button>
                   </form>
 
@@ -556,9 +651,11 @@ export default function SettingsPage() {
                             <td className="py-3 text-right">
                               <button
                                 onClick={() => handleDeleteKey(k.id)}
-                                className="p-1 rounded hover:bg-rose-500/10 text-rose-500 transition-colors"
+                                title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                                className="p-1 rounded hover:bg-rose-500/10 text-rose-500 transition-colors flex items-center"
                               >
                                 <Trash2 size={13} />
+                                {currentUserRole === "Developer" && <Lock size={10} className="ml-0.5 text-rose-500/60" />}
                               </button>
                             </td>
                           </tr>
@@ -611,9 +708,13 @@ export default function SettingsPage() {
                       <option value="SRE">SRE</option>
                       <option value="Developer">Developer</option>
                     </select>
-                    <button type="submit" className="btn btn-primary flex items-center gap-1.5 py-2 px-4 text-xs">
+                    <button 
+                      type="submit" 
+                      title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                      className="btn btn-primary flex items-center gap-1.5 py-2 px-4 text-xs font-semibold"
+                    >
                       <Plus size={13} />
-                      Invite
+                      Invite {currentUserRole === "Developer" && <Lock size={11} className="text-white/80 ml-1" />}
                     </button>
                   </form>
 
@@ -650,9 +751,11 @@ export default function SettingsPage() {
                               {m.email !== "admin@enterprise.com" && (
                                 <button
                                   onClick={() => handleRemoveTeam(m.email)}
-                                  className="p-1 rounded hover:bg-rose-500/10 text-rose-500 transition-colors"
+                                  title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
+                                  className="p-1 rounded hover:bg-rose-500/10 text-rose-500 transition-colors flex items-center"
                                 >
                                   <Trash2 size={13} />
+                                  {currentUserRole === "Developer" && <Lock size={10} className="ml-0.5 text-rose-500/60" />}
                                 </button>
                               )}
                             </td>
@@ -660,6 +763,41 @@ export default function SettingsPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ──────────────────────────────────────────────────
+                  6. AUDIT LOGS TAB
+              ────────────────────────────────────────────────── */}
+              {activeTab === "audit" && (
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="heading-section">Enterprise Audit Logs</h3>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                      Traceability history of all user actions, SSH triggers, and system modifications
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl overflow-hidden text-xs">
+                    <div className="max-h-[340px] overflow-y-auto custom-scrollbar p-3 space-y-2">
+                      {auditLogs.map((log) => (
+                        <div key={log.id} className="flex flex-col sm:flex-row justify-between sm:items-center py-2 border-b border-[var(--border-subtle)] gap-2 last:border-0">
+                          <div>
+                            <span className="font-mono text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded uppercase mr-2.5">{log.category}</span>
+                            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{log.action}</span>
+                          </div>
+                          <div className="flex gap-2 text-[10px] text-[var(--text-tertiary)] shrink-0 font-medium">
+                            <span className="font-semibold">{log.user}</span>
+                            <span>•</span>
+                            <span className="tabular-nums">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {auditLogs.length === 0 && (
+                        <div className="py-8 text-center text-slate-500">No logs generated yet.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

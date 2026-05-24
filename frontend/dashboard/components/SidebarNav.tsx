@@ -23,6 +23,7 @@ const FLAT_NAV_ITEMS: NavItem[] = [
   { name: "Overview", icon: LayoutDashboard, href: "/dashboard" },
   { name: "Infrastructure", icon: Server, href: "/dashboard/infrastructure" },
   { name: "Monitoring", icon: Activity, href: "/dashboard/monitoring", badge: "LIVE", badgeVariant: "live" },
+  { name: "Traces", icon: Network, href: "/dashboard/traces" },
   { name: "Incidents", icon: Zap, href: "/dashboard/incidents" },
   { name: "Alerts", icon: Bell, href: "/dashboard/alerts" },
   { name: "AI Ops", icon: BrainCircuit, href: "/dashboard/ai-ops" },

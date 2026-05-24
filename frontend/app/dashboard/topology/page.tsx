@@ -13,10 +13,11 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Server, Database, Globe, Zap, Shield, Cpu, Search, Filter, X, Sparkles, Activity, Maximize2, Minimize2, RefreshCw, Network, Brain, FileSearch } from "lucide-react";
+import { Server, Database, Globe, Zap, Shield, Cpu, Search, Filter, X, Sparkles, Activity, Maximize2, Minimize2, RefreshCw, Network, Brain, FileSearch, Lock } from "lucide-react";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { toast } from "react-hot-toast";
 
 // Custom Node Component (Flagship Redesign)
 const CustomNode = React.memo(function CustomNode({ data }: any) {
@@ -107,7 +108,7 @@ const nodeTypes = {
 };
 
 export default function TopologyPage() {
-  const { infrastructure, fetchDashboardData } = useMonitoringStore();
+  const { infrastructure, fetchDashboardData, currentUserRole } = useMonitoringStore();
   const addTimelineEvent = useMonitoringStore((state) => state.addTimelineEvent);
   const { incidents } = useLiveEngineStore();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -132,10 +133,81 @@ export default function TopologyPage() {
 
   const handleAction = (actionName: string) => {
     if (!selectedNode) return;
-    addTimelineEvent({
-      type: "info",
-      message: `Action '${actionName}' triggered on node '${selectedNode.data.label}'.`,
-    });
+    const nodeName = selectedNode.id;
+    const role = useMonitoringStore.getState().currentUserRole;
+
+    if (actionName === "Restart Node" || actionName === "Restart") {
+      if (role === "Developer") {
+        toast.error("Access Denied: Admin or SRE role required to restart nodes.");
+        return;
+      }
+      
+      const toastId = toast.loading(`Initiating remote restart sequence on '${nodeName}'...`);
+      
+      // Mark node status down in store
+      useMonitoringStore.setState((state) => ({
+        infrastructure: state.infrastructure.map((n) =>
+          n.service === nodeName ? { ...n, status: "down" } : n
+        )
+      }));
+
+      useMonitoringStore.getState().addAuditLog(`Triggered host restart sequence on node: ${nodeName}`, "node");
+
+      setTimeout(() => {
+        useMonitoringStore.setState((state) => ({
+          infrastructure: state.infrastructure.map((n) =>
+            n.service === nodeName ? { ...n, status: "healthy" } : n
+          )
+        }));
+        
+        toast.success(`Node '${nodeName}' successfully restarted and verified healthy.`, { id: toastId });
+        addTimelineEvent({
+          type: "info",
+          message: `Self-healing: Node '${nodeName}' recovered from restart sequence.`,
+        });
+      }, 3000);
+
+    } else if (actionName === "Isolate Node" || actionName === "Isolate") {
+      if (role === "Developer") {
+        toast.error("Access Denied: Admin or SRE role required to isolate nodes.");
+        return;
+      }
+
+      useMonitoringStore.setState((state) => ({
+        infrastructure: state.infrastructure.map((n) =>
+          n.service === nodeName ? { ...n, status: "down" } : n
+        )
+      }));
+
+      useMonitoringStore.getState().addAuditLog(`Isolated node: ${nodeName} from network topology`, "node");
+      toast.success(`Node '${nodeName}' isolated from network routing topology.`);
+      addTimelineEvent({
+        type: "warning",
+        message: `Security action: Node '${nodeName}' isolated from gateway flow.`,
+      });
+
+    } else if (actionName === "Scale Service" || actionName === "Scale") {
+      if (role === "Developer") {
+        toast.error("Access Denied: Admin or SRE role required to scale services.");
+        return;
+      }
+
+      useMonitoringStore.setState((state) => ({
+        infrastructure: state.infrastructure.map((n) =>
+          n.service === nodeName ? { ...n, replicas: (n.replicas || 2) + 1 } : n
+        )
+      }));
+
+      useMonitoringStore.getState().addAuditLog(`Scaled replica group for service: ${nodeName}`, "node");
+      toast.success(`Replica group scale-up event dispatched for service '${nodeName}'.`);
+      addTimelineEvent({
+        type: "info",
+        message: `Deployment: Scaled service '${nodeName}' capacity pool.`,
+      });
+
+    } else if (actionName === "View Logs") {
+      window.location.href = `/dashboard/live?service=${nodeName}`;
+    }
   };
 
   const [throttledInfrastructure, setThrottledInfrastructure] = useState(infrastructure);
@@ -530,21 +602,24 @@ export default function TopologyPage() {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <button 
                     onClick={() => handleAction("Restart Node")}
+                    title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
                     className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800 hover:text-rose-600 dark:hover:text-rose-400 transition-all shadow-sm"
                   >
-                    <RefreshCw size={14} /> Restart
+                    <RefreshCw size={14} /> Restart {currentUserRole === "Developer" && <Lock size={10} className="text-slate-400 dark:text-slate-500" />}
                   </button>
                   <button 
                     onClick={() => handleAction("Scale Service")}
+                    title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
                     className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
                   >
-                    <Zap size={14} /> Scale
+                    <Zap size={14} /> Scale {currentUserRole === "Developer" && <Lock size={10} className="text-slate-400 dark:text-slate-500" />}
                   </button>
                   <button 
                     onClick={() => handleAction("Isolate Node")}
+                    title={currentUserRole === "Developer" ? "Requires Admin or SRE permissions" : undefined}
                     className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-200 dark:hover:border-amber-800 hover:text-amber-600 dark:hover:text-amber-400 transition-all shadow-sm"
                   >
-                    <Shield size={14} /> Isolate
+                    <Shield size={14} /> Isolate {currentUserRole === "Developer" && <Lock size={10} className="text-slate-400 dark:text-slate-500" />}
                   </button>
                   <button 
                     onClick={() => handleAction("View Logs")}

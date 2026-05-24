@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Menu, Search, Sun, Moon, Wifi, WifiOff, Activity, LogOut, ChevronDown } from "lucide-react";
+import toast from "react-hot-toast";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 import { NotificationCenter } from "./NotificationCenter";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
@@ -14,6 +15,25 @@ export const TopNavbar = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { liveMetrics, incidents } = useLiveEngineStore();
+  const [timeLeft, setTimeLeft] = useState(900); // 15 mins in seconds
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 900));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatSessionTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const handleRenewSession = () => {
+    setTimeLeft(900);
+    toast.success("User session lease extended by 15:00 minutes.", { icon: "🔑" });
+  };
 
   const latest = liveMetrics[liveMetrics.length - 1];
   const criticalCount = incidents.filter(i => i.type === "critical" || i.type === "security").length;
@@ -120,6 +140,23 @@ export const TopNavbar = ({ onMenuToggle }: { onMenuToggle: () => void }) => {
 
         {/* Right actions */}
         <div className="flex items-center gap-1.5 ml-auto">
+
+          {/* Session countdown timer */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono border"
+            style={{
+              background: "var(--surface-2)",
+              borderColor: "var(--border-default)",
+              color: "var(--text-secondary)"
+            }}
+          >
+            <span>Session: {formatSessionTime(timeLeft)}</span>
+            <button 
+              onClick={handleRenewSession} 
+              className="text-[9px] font-extrabold uppercase text-blue-600 dark:text-blue-400 hover:underline border-l border-slate-700/30 dark:border-slate-300/30 pl-1.5 ml-1 select-none"
+            >
+              Renew
+            </button>
+          </div>
 
           {/* Connection status chip */}
           <div

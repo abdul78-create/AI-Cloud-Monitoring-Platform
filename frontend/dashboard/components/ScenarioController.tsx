@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import { Play, PlayCircle, X, ChevronRight, Server, AlertTriangle, Database, Activity, Cpu, Box, Network } from "lucide-react";
+import { useMonitoringStore } from "@/store/useMonitoringStore";
+import { useLiveEngineStore } from "@/hooks/useLiveEngine";
+import toast from "react-hot-toast";
 
 export function ScenarioController() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,21 +12,96 @@ export function ScenarioController() {
 
   const runScenario = async (scenarioId: string) => {
     setStatus(`Triggering ${scenarioId}...`);
+
+    // ─── LOCAL CLIENT-SIDE TRIGGER FALLBACK ───────────────────
+    useLiveEngineStore.setState({
+      activeScenario: scenarioId,
+      scenarioTick: 0,
+    });
+    
+    const addAuditLog = useMonitoringStore.getState().addAuditLog;
+    
+    if (scenarioId === "redis-failure") {
+      useMonitoringStore.setState({
+        rootCause: "cache-redis latency breach (850ms) due to client connection pool exhaustion",
+        playbook: [
+          "redis-cli ping",
+          "sudo systemctl restart redis-server",
+          "redis-cli info stats | grep connections"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Redis Cache Failure", "system");
+    } else if (scenarioId === "api-latency") {
+      useMonitoringStore.setState({
+        rootCause: "api-gateway p99 latency crossed SLA threshold (2500ms) with elevated error rates",
+        playbook: [
+          "docker restart api-gateway",
+          "curl -s http://api-gateway/health"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: API Gateway Latency", "system");
+    } else if (scenarioId === "memory-leak") {
+      useMonitoringStore.setState({
+        rootCause: "worker-queue heap memory saturation (99%) — JVM OOM crash imminent",
+        playbook: [
+          "docker restart worker-queue",
+          "free -m"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Node Memory Leak", "system");
+    } else if (scenarioId === "container-crash") {
+      useMonitoringStore.setState({
+        rootCause: "auth-service container crash loop (restart count: 45) in cluster-B",
+        playbook: [
+          "docker restart auth-service",
+          "docker logs auth-service | tail -n 50"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Container Crash Loop", "system");
+    } else if (scenarioId === "network-degradation") {
+      useMonitoringStore.setState({
+        rootCause: "event-bus network degradation — 15% packet loss on Load Balancer routing",
+        playbook: [
+          "ping -c 20 event-bus-service",
+          "sudo tc qdisc add dev eth0 root netem loss 0%"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Network Degradation", "system");
+    } else if (scenarioId === "agent-lifecycle") {
+      useMonitoringStore.setState({
+        rootCause: "Host cpu utilization crossed 90% threshold on linux-node-1",
+        playbook: [
+          "top -b -n 1 | head -n 20",
+          "sudo systemctl restart cloudai-agent"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Agent Lifecycle", "system");
+    } else if (scenarioId === "incident-recovery") {
+      useMonitoringStore.setState({
+        rootCause: "db-primary unreachable — initiating recovery sequence",
+        playbook: [
+          "pg_isready -h localhost",
+          "sudo systemctl restart postgresql",
+          "psql -U postgres -c 'SELECT count(*) FROM pg_stat_activity;'"
+        ]
+      });
+      addAuditLog("Triggered demo scenario: Incident Recovery", "system");
+    }
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"}/scenarios/trigger`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"}/scenarios/trigger`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenarioId }),
       });
-      if (res.ok) {
-        setStatus("Scenario triggered! Watch the dashboard.");
-        setTimeout(() => setStatus(null), 3000);
-      } else {
-        setStatus("Failed to trigger scenario.");
-      }
+      setStatus("Scenario triggered! Watch the dashboard.");
+      toast.success(`Triggered scenario: ${scenarioId}`);
+      setTimeout(() => setStatus(null), 3000);
     } catch (err) {
-      console.error(err);
-      setStatus("Error triggering scenario.");
+      console.warn("Backend API unavailable, playing simulated scenario client-side.");
+      setStatus("Simulating scenario client-side! Watch the dashboard.");
+      toast.success(`Simulating client-side: ${scenarioId}`);
+      setTimeout(() => setStatus(null), 3000);
     }
   };
 

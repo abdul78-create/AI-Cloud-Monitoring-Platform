@@ -1,6 +1,7 @@
 /**
  * Live Monitoring Engine
  * Momentum-based smooth metric simulation with correlated anomaly injection.
+ * Supports realistic, progressive scenario-specific system health stories.
  */
 
 export interface LiveMetric {
@@ -44,7 +45,7 @@ export interface AIInsight {
   action?: string;
 }
 
-// Smooth momentum-based value
+// Smooth momentum-based value generator
 class SmoothValue {
   private value: number;
   private velocity = 0;
@@ -74,27 +75,146 @@ const thr = new SmoothValue(0, 0, 12, 0.25);
 let tick = 0;
 let anomalyUntil = 0;
 
-export function generateNextMetric(): LiveMetric {
+export function generateNextMetric(activeScenario: string | null = null, scenarioTick: number = 0): LiveMetric {
   tick++;
-  if (tick > anomalyUntil && Math.random() < 0.025) {
-    anomalyUntil = tick + Math.floor(Math.random() * 12) + 4;
-    const t = Math.floor(Math.random() * 4);
-    if (t === 0) { cpu.spike(28); mem.spike(12); }
-    else if (t === 1) { net.spike(500); rps.spike(3000); err.spike(4); }
-    else if (t === 2) { lat.spike(300); err.spike(6); }
-    else { thr.spike(5); }
+  
+  let cpuVal = cpu.next();
+  let memVal = mem.next();
+  let netVal = net.next();
+  let diskVal = disk.next(0.3);
+  let rpsVal = rps.next();
+  let errVal = err.next();
+  let latVal = lat.next();
+  let thrVal = thr.next();
+
+  if (activeScenario) {
+    if (activeScenario === "redis-failure" || activeScenario === "redis-saturation") {
+      // Redis Saturation Story:
+      // Ticks 0-5: memory rises, hits 94%
+      if (scenarioTick <= 5) {
+        memVal = 60 + (scenarioTick * 6.4); // Rises from 60 to 92
+        latVal = 45 + (scenarioTick * 40); // Latency climbs from 45 to 245
+        cpuVal = 45 + (scenarioTick * 2);
+      } else if (scenarioTick <= 10) {
+        memVal = 92 + (Math.random() - 0.5) * 2;
+        latVal = 245 + ((scenarioTick - 5) * 120); // Latency climbs to 845ms
+        cpuVal = 55 + ((scenarioTick - 5) * 4); // DB & Gateway CPU rises from 55 to 75
+        errVal = 0.3 + ((scenarioTick - 5) * 1.5); // Errors rise to 7.8%
+      } else {
+        memVal = 94 + (Math.random() - 0.5) * 1.5;
+        latVal = 850 + (Math.random() - 0.5) * 30; // Stays at 850ms breach
+        cpuVal = 75 + (Math.random() - 0.5) * 3;
+        errVal = 12.4 + (Math.random() - 0.5) * 0.8;
+      }
+    } else if (activeScenario === "api-latency") {
+      // API Gateway Latency Story:
+      if (scenarioTick <= 6) {
+        cpuVal = 45 + (scenarioTick * 8); // CPU rises to 93%
+        latVal = 45 + (scenarioTick * 400); // Latency rises to 2445ms
+        errVal = 0.3 + (scenarioTick * 1.25); // Errors rise to 7.8%
+      } else if (scenarioTick <= 12) {
+        cpuVal = 93 + (Math.random() - 0.5) * 2;
+        latVal = 2500 + ((scenarioTick - 6) * 420); // Latency rises to 5020ms (SLA Timeout)
+        errVal = 8.0 + ((scenarioTick - 6) * 0.6); // Errors rise to 11.6%
+      } else if (scenarioTick <= 18) {
+        // Autoscale triggers at tick 12, recovering
+        cpuVal = 93 - ((scenarioTick - 12) * 5); // CPU drops back to 63%
+        latVal = 5020 - ((scenarioTick - 12) * 800); // Latency drops to 220ms
+        errVal = 11.6 - ((scenarioTick - 12) * 1.8); // Errors drop to 0.8%
+      } else {
+        // Restores to healthy
+        cpuVal = 45 + (Math.random() - 0.5) * 3;
+        latVal = 42 + (Math.random() - 0.5) * 5;
+        errVal = 0.05;
+      }
+    } else if (activeScenario === "memory-leak") {
+      // Memory Leak Story:
+      if (scenarioTick <= 15) {
+        memVal = 60 + (scenarioTick * 2.6); // Memory grows to 99%
+        cpuVal = 45 + (scenarioTick * 1.5);
+      } else {
+        memVal = 99;
+        cpuVal = 68 + (Math.random() - 0.5) * 4;
+        errVal = 2.5 + (Math.random() - 0.5) * 0.5;
+      }
+    } else if (activeScenario === "container-crash") {
+      // Container Crash Loop Story:
+      if (scenarioTick <= 8) {
+        cpuVal = 45 + (scenarioTick * 5); // CPU rises to 85%
+        errVal = 0.3 + (scenarioTick * 2.2); // Errors rise to 17.9%
+        latVal = 45 + (scenarioTick * 80); // Latency rises to 685ms
+      } else {
+        cpuVal = 85 + (Math.random() - 0.5) * 4;
+        errVal = 18.2 + (Math.random() - 0.5) * 1.2;
+        latVal = 690 + (Math.random() - 0.5) * 20;
+      }
+    } else if (activeScenario === "network-degradation") {
+      // Network Degradation (Packet Loss) Story:
+      if (scenarioTick <= 10) {
+        netVal = Math.max(10, 180 - (scenarioTick * 15)); // Throughput drops
+        errVal = 0.3 + (scenarioTick * 1.5); // Errors rise to 15.3%
+        latVal = 45 + (scenarioTick * 40); // Latency rises to 445ms
+      } else {
+        netVal = 30 + (Math.random() - 0.5) * 5;
+        errVal = 15.3 + (Math.random() - 0.5) * 0.5;
+        latVal = 445 + (Math.random() - 0.5) * 15;
+      }
+    } else if (activeScenario === "agent-lifecycle") {
+      // Agent Lifecycle: CPU spike -> Alert fires -> AI RCA
+      if (scenarioTick <= 5) {
+        // Startup phase
+        cpuVal = 12 + (scenarioTick * 5);
+      } else if (scenarioTick <= 12) {
+        // CPU Spike
+        cpuVal = 45 + ((scenarioTick - 5) * 7); // CPU spikes to 94%
+      } else {
+        cpuVal = 94 + (Math.random() - 0.5) * 2;
+      }
+    } else if (activeScenario === "incident-recovery") {
+      // Incident Recovery (DB restart):
+      if (scenarioTick <= 5) {
+        latVal = 2100;
+        errVal = 18.4;
+      } else if (scenarioTick <= 10) {
+        // Restarting, recovery in progress
+        latVal = 2100 - ((scenarioTick - 5) * 400); // Latency drops to 100ms
+        errVal = 18.4 - ((scenarioTick - 5) * 3.5); // Errors drop to 0.9%
+      } else {
+        latVal = 64 + (Math.random() - 0.5) * 5;
+        errVal = 0.01;
+      }
+    }
+  } else {
+    // Standard smooth random behavior
+    if (tick > anomalyUntil && Math.random() < 0.025) {
+      anomalyUntil = tick + Math.floor(Math.random() * 12) + 4;
+      const t = Math.floor(Math.random() * 4);
+      if (t === 0) { cpu.spike(28); mem.spike(12); }
+      else if (t === 1) { net.spike(500); rps.spike(3000); err.spike(4); }
+      else if (t === 2) { lat.spike(300); err.spike(6); }
+      else { thr.spike(5); }
+    }
+    const sm = tick <= anomalyUntil ? 2.2 : 1;
+    cpuVal = cpu.next(sm);
+    memVal = mem.next(sm * 0.6);
+    netVal = Math.round(net.next(sm * 1.4));
+    diskVal = disk.next(0.3);
+    rpsVal = Math.round(rps.next(sm));
+    errVal = Math.max(0, Math.round(err.next(sm) * 100) / 100);
+    latVal = Math.round(lat.next(sm));
+    thrVal = Math.max(0, Math.round(thr.next(sm * 0.5)));
   }
-  const sm = tick <= anomalyUntil ? 2.2 : 1;
+
   return {
     timestamp: new Date().toISOString(),
-    cpu: cpu.next(sm),
-    memory: mem.next(sm * 0.6),
-    network: Math.round(net.next(sm * 1.4)),
-    disk: disk.next(0.3),
-    requestsPerSec: Math.round(rps.next(sm)),
-    errorRate: Math.max(0, Math.round(err.next(sm) * 100) / 100),
-    latencyMs: Math.round(lat.next(sm)),
-    activeThreats: Math.max(0, Math.round(thr.next(sm * 0.5))),
+    cpu: +cpuVal.toFixed(1),
+    memory: +memVal.toFixed(1),
+    network: Math.round(netVal),
+    disk: +diskVal.toFixed(1),
+    requestsPerSec: Math.round(rpsVal),
+    errorRate: Math.max(0, +errVal.toFixed(2)),
+    latencyMs: Math.round(latVal),
+    activeThreats: Math.max(0, Math.round(thrVal)),
   };
 }
 
@@ -102,9 +222,94 @@ const SVCS = ['api-gateway','auth-service','db-primary','cache-redis','worker-qu
 const REGIONS = ['us-east-1','us-west-2','eu-central-1','ap-southeast-1'];
 
 let incN = 0;
-export function maybeGenerateIncident(): LiveIncident | null {
-  if (Math.random() > 0.10) return null;
+export function maybeGenerateIncident(activeScenario: string | null = null, scenarioTick: number = 0): LiveIncident | null {
   incN++;
+  
+  if (activeScenario) {
+    if ((activeScenario === "redis-failure" || activeScenario === "redis-saturation") && scenarioTick === 6) {
+      return {
+        id: `inc-${Date.now()}-redis`,
+        timestamp: new Date().toISOString(),
+        service: "cache-redis",
+        type: "critical",
+        title: "Redis Latency SLA Breach",
+        message: "redis-cache p99 latency crossed SLA threshold: 850ms in us-east-1"
+      };
+    }
+    if (activeScenario === "api-latency" && scenarioTick === 6) {
+      return {
+        id: `inc-${Date.now()}-api`,
+        timestamp: new Date().toISOString(),
+        service: "api-gateway",
+        type: "critical",
+        title: "API Gateway SLA Breach",
+        message: "api-gateway p99 latency >2500ms — SLA breach in us-east-1"
+      };
+    }
+    if (activeScenario === "api-latency" && scenarioTick === 12) {
+      return {
+        id: `inc-${Date.now()}-scale`,
+        timestamp: new Date().toISOString(),
+        service: "api-gateway",
+        type: "scaling",
+        title: "Auto-Scale Triggered",
+        message: "api-gateway scaled to 4 replicas — traffic spike"
+      };
+    }
+    if (activeScenario === "memory-leak" && scenarioTick === 8) {
+      return {
+        id: `inc-${Date.now()}-mem`,
+        timestamp: new Date().toISOString(),
+        service: "worker-queue",
+        type: "warning",
+        title: "Heap Memory Pressure",
+        message: "worker-queue heap at 89% — GC pressure increasing"
+      };
+    }
+    if (activeScenario === "container-crash" && scenarioTick === 6) {
+      return {
+        id: `inc-${Date.now()}-crash`,
+        timestamp: new Date().toISOString(),
+        service: "auth-service",
+        type: "critical",
+        title: "Container Crash Loop",
+        message: "auth-service container crashed in cluster-B (restart count: 45)"
+      };
+    }
+    if (activeScenario === "network-degradation" && scenarioTick === 5) {
+      return {
+        id: `inc-${Date.now()}-net`,
+        timestamp: new Date().toISOString(),
+        service: "event-bus",
+        type: "warning",
+        title: "Network Packet Loss Detected",
+        message: "15% packet loss on Load Balancer routing to event-bus"
+      };
+    }
+    if (activeScenario === "agent-lifecycle" && scenarioTick === 2) {
+      return {
+        id: `inc-${Date.now()}-agent`,
+        timestamp: new Date().toISOString(),
+        service: "linux-node-1",
+        type: "info",
+        title: "Agent Connected",
+        message: "cloudai-agent daemon installed on linux-node-1"
+      };
+    }
+    if (activeScenario === "agent-lifecycle" && scenarioTick === 10) {
+      return {
+        id: `inc-${Date.now()}-cpu`,
+        timestamp: new Date().toISOString(),
+        service: "linux-node-1",
+        type: "warning",
+        title: "High CPU Utilization",
+        message: "linux-node-1 CPU utilization crossed 90% threshold"
+      };
+    }
+    return null;
+  }
+  
+  if (Math.random() > 0.10) return null;
   const svc = SVCS[Math.floor(Math.random() * SVCS.length)];
   const reg = REGIONS[Math.floor(Math.random() * REGIONS.length)];
   const tpls: Omit<LiveIncident, 'id'|'timestamp'|'service'>[] = [
@@ -182,8 +387,114 @@ const LOGS: Record<LiveLogEntry['level'], string[]> = {
 };
 
 let logN = 0;
-export function generateLogEntry(): LiveLogEntry {
+export function generateLogEntry(activeScenario: string | null = null, scenarioTick: number = 0): LiveLogEntry {
   logN++;
+  
+  if (activeScenario) {
+    let level: LiveLogEntry['level'] = "INFO";
+    let message = "";
+    let service = "api-gateway";
+    
+    if (activeScenario === "redis-failure" || activeScenario === "redis-saturation") {
+      service = "cache-redis";
+      if (scenarioTick <= 4) {
+        level = "WARNING";
+        message = scenarioTick % 2 === 0 
+          ? "cache-redis memory saturation approaching threshold (89%)" 
+          : "cache-redis eviction policy activated (volatile-lru)";
+      } else if (scenarioTick <= 8) {
+        level = "WARNING";
+        service = "db-primary";
+        message = scenarioTick % 2 === 0
+          ? "slow query: execution time 3.2s on catalog items table"
+          : "connection pool at 88% — consider horizontal scaling";
+      } else {
+        level = "CRITICAL";
+        message = scenarioTick % 2 === 0
+          ? "CRITICAL: cache-redis p99 latency crossed SLA threshold: 850ms"
+          : "ERROR: Retry storm from downstream on cache-redis";
+      }
+    } else if (activeScenario === "api-latency") {
+      service = "api-gateway";
+      if (scenarioTick <= 5) {
+        level = "WARNING";
+        message = scenarioTick % 2 === 0
+          ? "Kubernetes node-pressure detected on cluster-B"
+          : "api-gateway pod evictions imminent due to resource constraints";
+      } else if (scenarioTick <= 10) {
+        level = "ERROR";
+        message = scenarioTick % 2 === 0
+          ? "Request timeout — auth-service unresponsive (5000ms)"
+          : "500 Internal Server Error on GET /api/v1/checkout";
+      } else if (scenarioTick <= 15) {
+        level = "CRITICAL";
+        message = scenarioTick % 2 === 0
+          ? "CRITICAL: api-gateway p99 latency >5000ms — SLA breach"
+          : "FATAL: Kernel OOM killer terminated process on api-gateway pod";
+      } else {
+        level = "RECOVERY";
+        message = "Service RECOVERED — health checks passing, replicas stabilized at 4/4";
+      }
+    } else if (activeScenario === "memory-leak") {
+      service = "worker-queue";
+      if (scenarioTick <= 8) {
+        level = "WARNING";
+        message = "worker-queue heap at 82% — GC pause time is increasing";
+      } else if (scenarioTick <= 15) {
+        level = "WARNING";
+        message = "worker-queue memory growing 2MB/min with no GC recovery";
+      } else {
+        level = "CRITICAL";
+        message = "FATAL: Kernel OOM killer terminated process on worker-queue";
+      }
+    } else if (activeScenario === "container-crash") {
+      service = "auth-service";
+      if (scenarioTick <= 6) {
+        level = "ERROR";
+        message = "SSL handshake failed — certificate CN mismatch on auth-service";
+      } else {
+        level = "CRITICAL";
+        message = "auth-service container crashed in cluster-B (restart count: 45)";
+      }
+    } else if (activeScenario === "network-degradation") {
+      service = "event-bus";
+      if (scenarioTick <= 6) {
+        level = "WARNING";
+        message = "Packet loss detected on Load Balancer (15%)";
+      } else {
+        level = "ERROR";
+        message = "Retry storm from event-bus — packet drop elevated";
+      }
+    } else if (activeScenario === "agent-lifecycle") {
+      service = "linux-node-1";
+      if (scenarioTick <= 4) {
+        level = "INFO";
+        message = "Initializing cloudai-agent daemon on port 9100";
+      } else {
+        level = "WARNING";
+        message = "Host CPU utilization crossed 90% threshold";
+      }
+    } else if (activeScenario === "incident-recovery") {
+      service = "db-primary";
+      if (scenarioTick <= 4) {
+        level = "CRITICAL";
+        message = "FATAL: db-primary unreachable — connection refused";
+      } else {
+        level = "RECOVERY";
+        message = "Database reconnected — normal operations resumed";
+      }
+    }
+    
+    return {
+      id: `log-${Date.now()}-${logN}`,
+      level,
+      service,
+      message,
+      timestamp: new Date().toISOString(),
+      traceId: Math.random() < 0.5 ? Math.random().toString(36).substring(2, 10) : undefined
+    };
+  }
+
   const r = Math.random();
   const level: LiveLogEntry['level'] =
     r < 0.44 ? 'INFO' : r < 0.63 ? 'WARNING' : r < 0.79 ? 'ERROR' :

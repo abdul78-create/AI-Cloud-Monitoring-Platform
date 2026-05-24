@@ -72,6 +72,7 @@ export type ApiInfrastructure = {
   status: "healthy" | "warning" | "down";
   uptimePercent: number;
   responseTimeMs: number;
+  replicas?: number;
 };
 
 export type ApiAlert = {
