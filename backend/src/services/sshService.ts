@@ -131,7 +131,27 @@ export async function installAgentViaSsh(
   if (onProgress) onProgress("Agent installed and service started successfully.");
 }
 
-const WHITELISTED_COMMANDS = ["uptime", "df -h", "free -m", "docker ps", "systemctl status"];
+const WHITELISTED_COMMANDS = [
+  // Read-only diagnostics
+  "uptime",
+  "df -h",
+  "free -m",
+  "docker ps",
+  "systemctl status",
+  // Phase 7 — AI Agent remediation commands
+  "sudo systemctl restart",
+  "sudo systemctl reload",
+  "sudo systemctl stop",
+  "docker restart",
+  "docker stop",
+  "redis-cli FLUSHDB",
+  "redis-cli CONFIG",
+  "kubectl scale",
+  "kubectl rollout restart",
+  "kubectl rollout status",
+  "kill -9",
+  "sudo kill",
+];
 
 export async function executeSafeSshCommand(connectionId: string, command: string): Promise<string> {
   if (!sshInstances.has(connectionId)) {

@@ -6,13 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Server, Box, Network, Terminal, Check, ChevronRight,
   ArrowLeft, Wifi, AlertTriangle, Activity,
-  Plus, Shield, Globe,
+  Plus, Shield, Globe, Bot,
   KeyRound, Eye, EyeOff, Loader2, CheckCircle2, Clock, Zap
 } from "lucide-react";
 import { api } from "@/services/api";
 import { useMonitoringStore } from "@/store/useMonitoringStore";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Provider = "aws" | "docker" | "kubernetes" | "linux";
 type Step = 0 | 1 | 2 | 3;
@@ -34,7 +34,7 @@ interface ServerData {
   networkOut: number;
 }
 
-// ─── Mock server data ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Mock server data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const INITIAL_SERVERS: ServerData[] = [
   {
@@ -87,7 +87,7 @@ const INITIAL_SERVERS: ServerData[] = [
   },
 ];
 
-// ─── Provider config ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Provider config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PROVIDERS = [
   {
@@ -152,7 +152,7 @@ const PROGRESS_STEPS_LABELS = [
 
 const WIZARD_STEPS = ["Choose Provider", "Configure", "Connecting", "Live Monitoring"];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function MetricBar({ value, label, colorClass }: { value: number; label: string; colorClass: string }) {
   return (
@@ -211,7 +211,7 @@ function InputField({
   );
 }
 
-// ─── Step Components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Step Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StepChooseProvider({
   selected,
@@ -670,8 +670,8 @@ function StepConnecting({
           <div className="h-64 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pr-2">
             {sshLogs.map((log, idx) => {
               let textClass = "text-slate-300";
-              if (log.startsWith("❌") || log.startsWith("[REMOTE ERR]")) textClass = "text-red-400";
-              else if (log.startsWith("✓") || log.includes("completed successfully") || log.startsWith("Success")) textClass = "text-emerald-400 font-semibold";
+              if (log.startsWith("âŒ") || log.startsWith("[REMOTE ERR]")) textClass = "text-red-400";
+              else if (log.startsWith("âœ“") || log.includes("completed successfully") || log.startsWith("Success")) textClass = "text-emerald-400 font-semibold";
               else if (log.startsWith("[LOCAL]")) textClass = "text-blue-400";
               else if (log.startsWith("[SSH]")) textClass = "text-cyan-400 font-semibold";
 
@@ -814,21 +814,87 @@ function StepLiveMonitoring({
   const [liveMetrics, setLiveMetrics] = useState<Record<string, { cpu: number; memory: number; disk: number }>>(
     Object.fromEntries(servers.map(s => [s.id, { cpu: s.cpu, memory: s.memory, disk: s.disk }]))
   );
+  const [discoveryPhase, setDiscoveryPhase] = useState<"scanning" | "done">("scanning");
+  const [scanLog, setScanLog] = useState<string[]>([]);
+  const [activeResourceTab, setActiveResourceTab] = useState(0);
+  const logRef = useRef<HTMLDivElement>(null);
 
-  // Simulate live metric updates
+  const SCAN_LOGS: Record<Provider, string[]> = {
+    aws: [
+      "Authenticating with AWS STS...",
+      "Assuming IAM role: CloudAI-ReadOnly...",
+      "Scanning us-east-1a... Found 2 EC2 instances",
+      "Scanning us-east-1b... Found 1 EC2 instance",
+      "Scanning us-east-1c... Found 1 EC2 instance (Warning: High CPU)",
+      "Discovering RDS databases in us-east-1... Found 1",
+      "Discovering ECS services... Found 3 services (6 tasks)",
+      "Discovering Lambda functions... Found 12",
+      "Calculating resource health scores...",
+      "Discovery complete. 20 resources found.",
+    ],
+    docker: [
+      "Connecting to Docker daemon at unix:///var/run/docker.sock...",
+      "Docker API version: 1.45",
+      "Listing running containers...",
+      "  nginx-proxy      RUNNING  (0 restarts)",
+      "  api-server       RUNNING  (2 restarts)",
+      "  postgres         RUNNING  (0 restarts)",
+      "  redis            RUNNING  (0 restarts)",
+      "  worker           RUNNING  (0 restarts)",
+      "  monitoring-agent RUNNING  (0 restarts)",
+      "Discovery complete. 6 containers found.",
+    ],
+    kubernetes: [
+      "Loading kubeconfig: prod-cluster-us-east-1...",
+      "Connecting to API server: https://k8s.internal:6443",
+      "Listing pods in namespace: production...",
+      "  api-gateway-7d9f   Running   1/1",
+      "  api-gateway-8b2c   Running   1/1",
+      "  auth-svc-5f4a      Running   1/1",
+      "  worker-6c8d        Pending   0/1",
+      "Listing Deployments (4)... Services (6)...",
+      "Discovery complete. 12 pods found.",
+    ],
+    linux: [
+      "Establishing SSH session...",
+      "Fingerprint verified. Session established.",
+      "Running system inventory...",
+      "  OS: Ubuntu 22.04.3 LTS",
+      "  CPU: 4 cores (Intel Xeon E5-2676)",
+      "  Memory: 16 GB / Disk: 80 GB (52% used)",
+      "Checking Docker: 6 containers running",
+      "Discovery complete. Agent ready.",
+    ],
+  };
+
+  useEffect(() => {
+    const lines = SCAN_LOGS[provider] ?? SCAN_LOGS.linux;
+    let i = 0;
+    const run = () => {
+      if (i >= lines.length) { setTimeout(() => setDiscoveryPhase("done"), 500); return; }
+      setScanLog(prev => [...prev, lines[i]]);
+      i++;
+      setTimeout(run, 420 + Math.random() * 180);
+    };
+    setTimeout(run, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [scanLog]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveMetrics(prev =>
-        Object.fromEntries(
-          Object.entries(prev).map(([id, m]) => [
-            id,
-            {
-              cpu:    Math.max(1, Math.min(99, m.cpu    + (Math.random() - 0.5) * 4)),
-              memory: Math.max(1, Math.min(99, m.memory + (Math.random() - 0.5) * 2)),
-              disk:   Math.max(1, Math.min(99, m.disk   + (Math.random() - 0.5) * 0.5)),
-            },
-          ])
-        )
+        Object.fromEntries(Object.entries(prev).map(([id, m]) => [
+          id,
+          {
+            cpu:    Math.max(1, Math.min(99, m.cpu    + (Math.random() - 0.5) * 4)),
+            memory: Math.max(1, Math.min(99, m.memory + (Math.random() - 0.5) * 2)),
+            disk:   Math.max(1, Math.min(99, m.disk   + (Math.random() - 0.5) * 0.5)),
+          },
+        ]))
       );
     }, 3000);
     return () => clearInterval(interval);
@@ -837,128 +903,264 @@ function StepLiveMonitoring({
   const healthyCount = servers.filter(s => s.status === "healthy").length;
   const warningCount = servers.filter(s => s.status === "warning").length;
 
+  const AWS_EC2 = [
+    { id: "prod-api-1",    type: "t3.xlarge",  region: "us-east-1a", cpu: 67, mem: 84, ok: true },
+    { id: "prod-api-2",    type: "t3.xlarge",  region: "us-east-1b", cpu: 43, mem: 71, ok: true },
+    { id: "worker-node-1", type: "c5.2xlarge", region: "us-east-1c", cpu: 89, mem: 92, ok: false },
+    { id: "db-primary",    type: "r5.xlarge",  region: "us-east-1a", cpu: 34, mem: 61, ok: true },
+  ];
+  const AWS_RDS = [{ id: "postgres-prod", engine: "PostgreSQL 15.3", cls: "db.r5.large", region: "us-east-1a", storage: 48 }];
+  const AWS_ECS = [
+    { name: "api-gateway-svc", tasks: "2/2", cpu: 34, mem: 55 },
+    { name: "worker-svc",      tasks: "1/1", cpu: 12, mem: 43 },
+    { name: "auth-svc",        tasks: "1/1", cpu: 8,  mem: 31 },
+  ];
+  const DOCKER_C = [
+    { name: "nginx-proxy",      image: "nginx:1.25",           cpu: "0.3%",  mem: "128 MB", restarts: 0 },
+    { name: "api-server",       image: "myapp/api:v2.4.1",     cpu: "12%",   mem: "512 MB", restarts: 2 },
+    { name: "postgres",         image: "postgres:15.3",        cpu: "4%",    mem: "1.2 GB", restarts: 0 },
+    { name: "redis",            image: "redis:7.2-alpine",     cpu: "0.8%",  mem: "64 MB",  restarts: 0 },
+    { name: "worker",           image: "myapp/worker:v2.4.1",  cpu: "34%",   mem: "256 MB", restarts: 0 },
+    { name: "monitoring-agent", image: "cloudai/agent:latest", cpu: "0.1%",  mem: "32 MB",  restarts: 0 },
+  ];
+  const K8S_P = [
+    { name: "api-gateway-7d9f", status: "Running", ready: "1/1", node: "node-1", warn: false },
+    { name: "api-gateway-8b2c", status: "Running", ready: "1/1", node: "node-2", warn: false },
+    { name: "auth-svc-5f4a",    status: "Running", ready: "1/1", node: "node-1", warn: false },
+    { name: "worker-6c8d",      status: "Pending", ready: "0/1", node: "node-2", warn: true },
+    { name: "postgres-0",       status: "Running", ready: "1/1", node: "node-1", warn: false },
+    { name: "redis-master-0",   status: "Running", ready: "1/1", node: "node-2", warn: false },
+  ];
+
+  const thS: React.CSSProperties = { color: "var(--text-tertiary)", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", padding: "6px 8px" };
+  const tdS: React.CSSProperties = { color: "var(--text-primary)", fontSize: 11, padding: "7px 8px" };
+  const Dot = ({ ok }: { ok: boolean }) => (
+    <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${ok ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`} />
+  );
+
   return (
-    <div>
+    <div className="space-y-5">
       {/* Success banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 p-4 rounded-xl border mb-6"
-        style={{
-          background: "var(--color-success-bg)",
-          borderColor: "var(--color-success-border)",
-        }}
-      >
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 p-4 rounded-xl border"
+        style={{ background: "var(--color-success-bg)", borderColor: "var(--color-success-border)" }}>
         <CheckCircle2 size={18} className="text-green-600 flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>
-            Live telemetry active — {servers.length} servers connected
+            {discoveryPhase === "scanning" ? "Discovering infrastructure resources..." : `Live telemetry active â€” ${servers.length} servers connected`}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-            Data is streaming to your dashboard. Monitoring interval: 3 seconds.
+            {discoveryPhase === "scanning" ? "Scanning your account for resources..." : "Data is streaming to your dashboard every 3 seconds."}
           </p>
         </div>
         <span className="live-dot text-xs flex-shrink-0">LIVE</span>
       </motion.div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {[
-          { label: "Servers Connected", value: servers.length, icon: Server, color: "text-blue-500" },
-          { label: "Healthy", value: healthyCount, icon: CheckCircle2, color: "text-green-500" },
-          { label: "Warnings", value: warningCount, icon: AlertTriangle, color: "text-yellow-500" },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card p-4 text-center">
-            <Icon size={20} className={`${color} mx-auto mb-2`} />
-            <div className="text-2xl font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>{value}</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>{label}</div>
+      {/* Discovery scan log */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-tertiary)" }}>
+          {discoveryPhase === "scanning" ? "Discovery Scan Running..." : "Discovery Complete"}
+        </p>
+        <div ref={logRef}
+          className="rounded-xl p-4 font-mono text-[11px] space-y-0.5 max-h-44 overflow-y-auto"
+          style={{ background: "#0d1117", border: "1px solid #30363d" }}>
+          {scanLog.map((line, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span style={{ color: "#3fb950" }}>{">"}</span>
+              <span style={{ color: line.toLowerCase().includes("complete") ? "#3fb950" : line.toLowerCase().includes("warning") ? "#f0883e" : "#e6edf3" }}>
+                {line}
+              </span>
+            </div>
+          ))}
+          {discoveryPhase === "scanning" && (
+            <div className="flex items-center gap-1" style={{ color: "#8b949e" }}>
+              <span>{">"}</span><span className="animate-pulse">|</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Resource inventory after scan */}
+      {discoveryPhase === "done" && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Resources Found", value: provider === "aws" ? "20" : provider === "docker" ? "6" : provider === "kubernetes" ? "22" : String(servers.length), icon: Server, color: "text-blue-500" },
+              { label: "Healthy", value: healthyCount, icon: CheckCircle2, color: "text-green-500" },
+              { label: "Warnings", value: warningCount, icon: AlertTriangle, color: "text-yellow-500" },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card p-4 text-center">
+                <Icon size={18} className={`${color} mx-auto mb-1`} />
+                <div className="text-xl font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>{value}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Server cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {servers.map((server, i) => {
-          const metrics = liveMetrics[server.id] ?? { cpu: server.cpu, memory: server.memory, disk: server.disk };
-          return (
-            <motion.div
-              key={server.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="card p-4 space-y-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-semibold text-sm truncate" style={{ color: "var(--text-primary)" }}>
-                    {server.hostname}
+          {/* AWS tables */}
+          {provider === "aws" && (
+            <div className="card overflow-hidden">
+              <div className="flex" style={{ borderBottom: "1px solid var(--border-default)" }}>
+                {["EC2 Instances (4)", "RDS (1)", "ECS Services (3)"].map((t, i) => (
+                  <button key={t} onClick={() => setActiveResourceTab(i)}
+                    className="px-4 py-2.5 text-[11px] font-semibold transition-colors"
+                    style={{
+                      color: activeResourceTab === i ? "var(--text-primary)" : "var(--text-tertiary)",
+                      borderBottom: activeResourceTab === i ? "2px solid var(--brand-600)" : "2px solid transparent",
+                      marginBottom: -1,
+                    }}>{t}</button>
+                ))}
+              </div>
+              <div className="overflow-x-auto">
+                {activeResourceTab === 0 && (
+                  <table className="w-full">
+                    <thead><tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      {["Instance ID", "Type", "Region", "CPU", "Memory", "Status"].map(h => <th key={h} style={thS} className="text-left">{h}</th>)}
+                    </tr></thead>
+                    <tbody>{AWS_EC2.map(r => (
+                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                        <td style={tdS}><span className="font-mono">{r.id}</span></td>
+                        <td style={tdS}><span className="badge badge-info text-[10px]">{r.type}</span></td>
+                        <td style={tdS} className="font-mono text-[10px]">{r.region}</td>
+                        <td style={tdS}><span className={`font-bold ${r.cpu > 80 ? "text-amber-500" : "text-emerald-500"}`}>{r.cpu}%</span></td>
+                        <td style={tdS}><span className={`font-bold ${r.mem > 85 ? "text-amber-500" : ""}`}>{r.mem}%</span></td>
+                        <td style={tdS}><div className="flex items-center gap-1.5"><Dot ok={r.ok} />{r.ok ? "healthy" : "warning"}</div></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                )}
+                {activeResourceTab === 1 && (
+                  <table className="w-full">
+                    <thead><tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      {["DB Identifier", "Engine", "Class", "Region", "Storage"].map(h => <th key={h} style={thS} className="text-left">{h}</th>)}
+                    </tr></thead>
+                    <tbody>{AWS_RDS.map(r => (
+                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                        <td style={tdS} className="font-mono">{r.id}</td>
+                        <td style={tdS}>{r.engine}</td>
+                        <td style={tdS}><span className="badge badge-info text-[10px]">{r.cls}</span></td>
+                        <td style={tdS} className="font-mono text-[10px]">{r.region}</td>
+                        <td style={tdS}><div className="flex items-center gap-1.5"><Dot ok={true} />{r.storage}% used</div></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                )}
+                {activeResourceTab === 2 && (
+                  <table className="w-full">
+                    <thead><tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                      {["Service Name", "Tasks", "CPU", "Memory"].map(h => <th key={h} style={thS} className="text-left">{h}</th>)}
+                    </tr></thead>
+                    <tbody>{AWS_ECS.map(r => (
+                      <tr key={r.name} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                        <td style={tdS} className="font-mono">{r.name}</td>
+                        <td style={tdS}><div className="flex items-center gap-1.5"><Dot ok={true} />{r.tasks}</div></td>
+                        <td style={tdS}>{r.cpu}%</td>
+                        <td style={tdS}>{r.mem}%</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Docker table */}
+          {provider === "docker" && (
+            <div className="card overflow-hidden">
+              <div className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide"
+                style={{ borderBottom: "1px solid var(--border-default)", color: "var(--text-tertiary)" }}>
+                Containers ({DOCKER_C.length})
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                    {["Name", "Image", "CPU", "Memory", "Restarts"].map(h => <th key={h} style={thS} className="text-left">{h}</th>)}
+                  </tr></thead>
+                  <tbody>{DOCKER_C.map(c => (
+                    <tr key={c.name} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                      <td style={tdS}><div className="flex items-center gap-1.5"><Dot ok={c.restarts === 0} /><span className="font-mono font-semibold">{c.name}</span></div></td>
+                      <td style={tdS} className="font-mono text-[10px]">{c.image}</td>
+                      <td style={tdS} className="font-bold">{c.cpu}</td>
+                      <td style={tdS} className="font-bold">{c.mem}</td>
+                      <td style={tdS}><span className={c.restarts > 0 ? "text-amber-500 font-bold" : ""}>{c.restarts}</span></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* K8s table */}
+          {provider === "kubernetes" && (
+            <div className="card overflow-hidden">
+              <div className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide"
+                style={{ borderBottom: "1px solid var(--border-default)", color: "var(--text-tertiary)" }}>
+                Pods â€” Namespace: production ({K8S_P.length})
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                    {["Pod Name", "Status", "Ready", "Node"].map(h => <th key={h} style={thS} className="text-left">{h}</th>)}
+                  </tr></thead>
+                  <tbody>{K8S_P.map(p => (
+                    <tr key={p.name} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                      <td style={tdS} className="font-mono">{p.name}</td>
+                      <td style={tdS}><div className="flex items-center gap-1.5"><Dot ok={!p.warn} /><span className={p.warn ? "text-amber-500" : ""}>{p.status}</span></div></td>
+                      <td style={tdS} className="font-semibold">{p.ready}</td>
+                      <td style={tdS} className="font-mono text-[10px]">{p.node}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Linux server cards */}
+          {provider === "linux" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {servers.map(server => {
+                const metrics = liveMetrics[server.id] ?? { cpu: server.cpu, memory: server.memory, disk: server.disk };
+                return (
+                  <div key={server.id} className="card p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{server.hostname}</span>
+                      <StatusBadge status={server.status} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      <span>IP: <span className="font-mono">{server.ip}</span></span>
+                      <span>Uptime: {server.uptime}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <MetricBar value={metrics.cpu}    label="CPU"  colorClass={metrics.cpu > 80 ? "bg-red-500" : "bg-emerald-500"} />
+                      <MetricBar value={metrics.memory} label="Mem"  colorClass={metrics.memory > 85 ? "bg-red-500" : "bg-blue-500"} />
+                      <MetricBar value={metrics.disk}   label="Disk" colorClass="bg-indigo-500" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono" style={{ color: "var(--text-tertiary)" }}>{server.ip}</span>
-                    <span className="badge badge-info text-[10px] px-1.5 py-0">{server.instanceType}</span>
-                  </div>
-                </div>
-                <StatusBadge status={server.status} />
-              </div>
+                );
+              })}
+            </div>
+          )}
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
-                <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                  <Globe size={11} />{server.region}
-                </div>
-                <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                  <Clock size={11} />{server.uptime}
-                </div>
-                <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                  <Server size={11} />{server.os}
-                </div>
-                <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                  <Activity size={11} />{server.networkIn.toFixed(0)} Mbps in
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <MetricBar
-                  value={metrics.cpu}
-                  label="CPU"
-                  colorClass={metrics.cpu > 80 ? "bg-red-500" : metrics.cpu > 60 ? "bg-yellow-500" : "bg-green-500"}
-                />
-                <MetricBar
-                  value={metrics.memory}
-                  label="Memory"
-                  colorClass={metrics.memory > 85 ? "bg-red-500" : metrics.memory > 70 ? "bg-yellow-500" : "bg-blue-500"}
-                />
-                <MetricBar
-                  value={metrics.disk}
-                  label="Disk"
-                  colorClass={metrics.disk > 85 ? "bg-red-500" : "bg-indigo-500"}
-                />
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/dashboard" className="btn btn-primary flex items-center gap-2">
-          <Zap size={15} />
-          Go to Dashboard
-          <ChevronRight size={14} />
-        </Link>
-        <button onClick={onConnectMore} className="btn btn-outlined flex items-center gap-2">
-          <Plus size={14} />
-          Connect More Servers
-        </button>
-        <Link href="/dashboard/topology" className="btn btn-ghost flex items-center gap-2">
-          <Network size={14} />
-          View Topology Map
-        </Link>
-      </div>
+          {/* Actions */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link href="/dashboard" className="btn btn-primary flex items-center gap-2">
+              <Zap size={15} /> Begin Monitoring <ChevronRight size={14} />
+            </Link>
+            <Link href="/dashboard/ai-agent" className="btn btn-outlined flex items-center gap-2">
+              <Bot size={14} /> Open AI Agent
+            </Link>
+            <button onClick={onConnectMore} className="btn btn-ghost flex items-center gap-2">
+              <Plus size={14} /> Connect More
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ConnectInfrastructurePage() {
   const [step, setStep]               = useState<Step>(0);
@@ -1068,7 +1270,7 @@ export default function ConnectInfrastructurePage() {
 
     const handleSshProgress = (data: { message: string }) => {
       setSshLogs(prev => [...prev, data.message]);
-      if (data.message.includes("❌")) {
+      if (data.message.includes("âŒ")) {
         setSshError(data.message);
         setIsSshRunning(false);
       }

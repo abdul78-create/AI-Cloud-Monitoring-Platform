@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity, Bell, BookOpen, BrainCircuit, LayoutDashboard,
   Plug2, Server, Settings, Zap, X, Play, Network, Shield, GitBranch,
+  Bot, MessageSquare,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
@@ -26,6 +27,8 @@ const FLAT_NAV_ITEMS: NavItem[] = [
   { name: "Service Map", icon: GitBranch, href: "/dashboard/architecture" },
   { name: "Traces", icon: Network, href: "/dashboard/traces" },
   { name: "Incidents", icon: Zap, href: "/dashboard/incidents" },
+  { name: "AI Agent", icon: Bot, href: "/dashboard/ai-agent", badge: "NEW", badgeVariant: "live" },
+  { name: "Copilot", icon: MessageSquare, href: "/dashboard/copilot" },
   { name: "Alerts", icon: Bell, href: "/dashboard/alerts" },
   { name: "AI Ops", icon: BrainCircuit, href: "/dashboard/ai-ops" },
   { name: "Security", icon: Shield, href: "/dashboard/security" },

@@ -99,6 +99,10 @@ io.on("connection", (socket) => {
 // Start real-time telemetry broadcaster
 startTelemetryBroadcaster(io);
 
+// Initialize AI Agent service with socket.io instance
+import { initAiAgentRoutes } from "./routes";
+initAiAgentRoutes(io);
+
 // Start background agent status sweeper to monitor heartbeat intervals
 startAgentStatusSweeper(io);
 

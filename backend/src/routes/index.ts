@@ -8,8 +8,19 @@ import { analyticsRoutes } from "./analyticsRoutes";
 import { opsRoutes } from "./opsRoutes";
 import { agentRouter } from "./agentRoutes";
 import scenarioRouter from "./scenarioRoutes";
+import { createAiAgentRouter } from "./aiAgentRoutes";
+import { createAiAgentService } from "../services/aiAgentService";
 
 export const apiRoutes = Router();
+
+// initAiAgent must be called after io is available (called from server.ts)
+let _aiAgentRouterMounted = false;
+export function initAiAgentRoutes(io: import("socket.io").Server) {
+  if (_aiAgentRouterMounted) return;
+  const agentSvc = createAiAgentService(io);
+  apiRoutes.use("/ai-agent", createAiAgentRouter(agentSvc));
+  _aiAgentRouterMounted = true;
+}
 
 apiRoutes.use("/", monitoringRoutes);
 apiRoutes.use("/", logRoutes);
