@@ -295,7 +295,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
   },
 
-  setMode: (mode) => {
+  setMode: (mode: "autonomous" | "supervised") => {
     set({ agentMode: mode });
     toast(`Agent mode: ${mode === "autonomous" ? "Autonomous (acts immediately)" : "Supervised (waits for approval)"}`, {
       icon: mode === "autonomous" ? "🤖" : "👁",
