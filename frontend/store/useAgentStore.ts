@@ -513,12 +513,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   clearAll: () => {
     set({ decisions: [], activeRules: {} });
   },
-      toast.error(`Auto-heal failed — escalated to on-call: ${RULES.find((r) => r.id === ruleId)?.name}`, {
-        icon: "📟",
-      });
-    }
-  },
-} as any));
+}));
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
