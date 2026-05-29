@@ -302,7 +302,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     });
   },
 
-  evaluate: (metrics) => {
+  evaluate: (metrics: { cpu: number; memory: number; latencyMs: number; errorRate: number; activeThreats: number }) => {
     const { isEnabled, agentMode, activeRules, decisions, memory } = get();
     if (!isEnabled) return;
 
@@ -359,7 +359,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
   },
 
-  approve: (id) => {
+  approve: (id: string) => {
     const { decisions } = get();
     const decision = decisions.find((d) => d.id === id);
     if (!decision) return;
@@ -371,7 +371,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     get()._runDecisionFlow(id, decision.action);
   },
 
-  reject: (id) => {
+  reject: (id: string) => {
     set((s) => ({
       decisions: s.decisions.map((d) =>
         d.id === id
@@ -382,7 +382,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     toast("Decision rejected — escalating to on-call engineer", { icon: "📟" });
   },
 
-  clearDecision: (id) => {
+  clearDecision: (id: string) => {
     set((s) => ({
       decisions: s.decisions.filter((d) => d.id !== id),
     }));
