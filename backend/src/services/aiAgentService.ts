@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -299,7 +299,7 @@ export class AiAgentService {
       );
       if (existingActive) continue;
 
-      const id = uuidv4();
+      const id = randomUUID();
       const mem = this.memory.recall(rule.id);
 
       // Build a human-readable metric string
