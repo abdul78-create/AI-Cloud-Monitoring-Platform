@@ -286,7 +286,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   agentMode: "autonomous",
   activeRules: {},
 
-  setEnabled: (val) => {
+  setEnabled: (val: boolean) => {
     set({ isEnabled: val });
     if (!val) {
       toast("AI Agent paused — monitoring only mode", { icon: "⏸" });
