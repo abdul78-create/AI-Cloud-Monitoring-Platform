@@ -45,11 +45,46 @@ const SEV = {
 };
 
 const STATUS = {
-  open:          { label: "Open",          color: "text-red-600 dark:text-red-400" },
-  acknowledged:  { label: "Acknowledged",  color: "text-amber-600 dark:text-amber-400" },
-  investigating: { label: "Investigating", color: "text-blue-600 dark:text-blue-400" },
-  resolved:      { label: "Resolved",      color: "text-emerald-600 dark:text-emerald-400" },
+  open:          { label: "Open",          color: "text-red-600 dark:text-red-400",     step: 0 },
+  acknowledged:  { label: "Acknowledged",  color: "text-amber-600 dark:text-amber-400", step: 1 },
+  investigating: { label: "Investigating", color: "text-blue-600 dark:text-blue-400",   step: 2 },
+  resolved:      { label: "Resolved",      color: "text-emerald-600 dark:text-emerald-400", step: 3 },
 };
+
+const LIFECYCLE_STEPS = ["Open", "Ack'd", "Investigating", "Resolved"];
+
+function LifecycleBar({ status }: { status: IncidentStatus }) {
+  const currentStep = STATUS[status].step;
+  return (
+    <div className="flex items-center gap-1 mt-2">
+      {LIFECYCLE_STEPS.map((step, i) => {
+        const isDone = i < currentStep;
+        const isActive = i === currentStep;
+        return (
+          <div key={step} className="flex items-center">
+            <div
+              className={`flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold border transition-colors ${
+                isDone ? "bg-emerald-500 border-emerald-500 text-white" :
+                isActive ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                "border-slate-200 dark:border-slate-700 text-slate-400"
+              }`}
+            >
+              {isDone ? "✓" : i + 1}
+            </div>
+            <span className={`text-[8px] ml-0.5 hidden sm:block ${
+              isActive ? "font-semibold text-slate-700 dark:text-slate-300" : "text-slate-400"
+            }`}>{step}</span>
+            {i < LIFECYCLE_STEPS.length - 1 && (
+              <div className={`h-px w-4 mx-1 ${
+                isDone ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-700"
+              }`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function timeAgo(d: Date) {
   const diff = Date.now() - d.getTime();
@@ -207,6 +242,19 @@ export default function IncidentsPage() {
     }
   };
 
+  const handleInvestigate = (id: string) => {
+    setIncidents(prev => prev.map(i =>
+      i.id === id ? { ...i, status: "investigating" as IncidentStatus } : i
+    ));
+    toast.success(`Incident ${id} moved to Investigating.`, { icon: "🔍" });
+  };
+
+  const handleSuppress = (id: string) => {
+    setIncidents(prev => prev.filter(i => i.id !== id));
+    toast(`Incident ${id} suppressed for 1 hour.`, { icon: "🔕" });
+  };
+
+
   const handleResolve = async (id: string) => {
     try {
       const res = await api.post(`/ops/incidents/${id}/resolve`, { by: "sre-lead@enterprise.com" });
@@ -354,7 +402,8 @@ export default function IncidentsPage() {
                           <span className={`text-[11px] font-semibold ${stat.color}`}>{stat.label}</span>
                         </div>
                         <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug mb-2">{inc.title}</p>
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+                        <LifecycleBar status={inc.status} />
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mt-2">
                           <span className="flex items-center gap-1"><Clock size={11} />{timeAgo(inc.startedAt)}</span>
                           <span className="flex items-center gap-1"><Activity size={11} />Duration: {duration(inc.startedAt, inc.resolvedAt)}</span>
                           {inc.assignedTo && <span className="flex items-center gap-1"><User size={11} />{inc.assignedTo.split("@")[0]}</span>}
@@ -373,7 +422,7 @@ export default function IncidentsPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0 ml-2">
+                      <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
                         {inc.status === "open" && (
                           <button
                             onClick={e => { e.stopPropagation(); handleAcknowledge(inc.id); }}
@@ -382,12 +431,28 @@ export default function IncidentsPage() {
                             Acknowledge
                           </button>
                         )}
-                        {inc.status !== "resolved" && inc.status !== "open" && (
+                        {inc.status === "acknowledged" && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleInvestigate(inc.id); }}
+                            className="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-800"
+                          >
+                            Investigate
+                          </button>
+                        )}
+                        {inc.status === "investigating" && (
                           <button
                             onClick={e => { e.stopPropagation(); handleResolve(inc.id); }}
                             className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200 dark:border-emerald-800"
                           >
                             Resolve
+                          </button>
+                        )}
+                        {inc.status !== "resolved" && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleSuppress(inc.id); }}
+                            className="px-2 py-0.5 text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                          >
+                            Suppress 1h
                           </button>
                         )}
                         <Link

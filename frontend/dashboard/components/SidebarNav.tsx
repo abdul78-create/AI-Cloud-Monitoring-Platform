@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Bell, BookOpen, BrainCircuit, LayoutDashboard,
-  Plug2, Server, Settings, Zap, X, Play, Network,
+  Plug2, Server, Settings, Zap, X, Play, Network, Shield, GitBranch,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveEngineStore } from "@/hooks/useLiveEngine";
@@ -23,10 +23,12 @@ const FLAT_NAV_ITEMS: NavItem[] = [
   { name: "Overview", icon: LayoutDashboard, href: "/dashboard" },
   { name: "Infrastructure", icon: Server, href: "/dashboard/infrastructure" },
   { name: "Monitoring", icon: Activity, href: "/dashboard/monitoring", badge: "LIVE", badgeVariant: "live" },
+  { name: "Service Map", icon: GitBranch, href: "/dashboard/architecture" },
   { name: "Traces", icon: Network, href: "/dashboard/traces" },
   { name: "Incidents", icon: Zap, href: "/dashboard/incidents" },
   { name: "Alerts", icon: Bell, href: "/dashboard/alerts" },
   { name: "AI Ops", icon: BrainCircuit, href: "/dashboard/ai-ops" },
+  { name: "Security", icon: Shield, href: "/dashboard/security" },
   { name: "Integrations", icon: Plug2, href: "/dashboard/integrations" },
   { name: "Docs", icon: BookOpen, href: "/docs" },
   { name: "Settings", icon: Settings, href: "/dashboard/settings" },
