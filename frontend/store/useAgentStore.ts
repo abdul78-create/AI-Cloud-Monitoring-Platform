@@ -272,6 +272,128 @@ interface AgentStore {
 
 let decisionCounter = 0;
 
+// ─── Decision flow runner (module-level to avoid interface pollution) ─────────
+
+async function runDecisionFlow(
+  id: string,
+  action: AgentAction,
+  set: (partial: Partial<AgentStore> | ((s: AgentStore) => Partial<AgentStore>)) => void,
+  get: () => AgentStore
+) {
+  const appendLog = (line: string) => {
+    set((s) => ({
+      decisions: s.decisions.map((d) =>
+        d.id === id ? { ...d, executionLog: [...d.executionLog, line] } : d
+      ),
+    }));
+  };
+
+  // Analyzing phase
+  set((s) => ({
+    decisions: s.decisions.map((d) =>
+      d.id === id ? { ...d, status: "analyzing" as AgentDecisionStatus } : d
+    ),
+  }));
+  await delay(1800);
+
+  // Deciding phase
+  set((s) => ({
+    decisions: s.decisions.map((d) =>
+      d.id === id ? { ...d, status: "deciding" as AgentDecisionStatus } : d
+    ),
+  }));
+  await delay(1200);
+
+  // Executing phase
+  set((s) => ({
+    decisions: s.decisions.map((d) =>
+      d.id === id ? { ...d, status: "executing" as AgentDecisionStatus } : d
+    ),
+  }));
+
+  const logs = EXEC_LOGS[action.type](action.target, action.command);
+  for (const line of logs) {
+    await delay(550);
+    appendLog(line);
+  }
+
+  // Verifying phase
+  set((s) => ({
+    decisions: s.decisions.map((d) =>
+      d.id === id ? { ...d, status: "verifying" as AgentDecisionStatus } : d
+    ),
+  }));
+  await delay(1500);
+
+  // 88% success rate simulation
+  const succeeded = Math.random() > 0.12;
+  const resolvedAt = new Date().toISOString();
+  const ruleId = get().decisions.find((d) => d.id === id)?.ruleId ?? "";
+
+  if (succeeded) {
+    set((s) => ({
+      decisions: s.decisions.map((d) =>
+        d.id === id
+          ? { ...d, status: "resolved" as AgentDecisionStatus, verified: true, outcome: "success", resolvedAt }
+          : d
+      ),
+      stats: {
+        ...s.stats,
+        totalActions: s.stats.totalActions + 1,
+        lastActionAt: resolvedAt,
+        successRate: Math.round(
+          ((s.stats.successRate * s.stats.totalActions + 100) / (s.stats.totalActions + 1)) * 10
+        ) / 10,
+      },
+      memory: {
+        ...s.memory,
+        [ruleId]: {
+          ...(s.memory[ruleId] ?? { ruleId, name: ruleId, totalRuns: 0, lastFix: action.command }),
+          ruleId,
+          name: RULES.find((r) => r.id === ruleId)?.name ?? ruleId,
+          successRate: Math.min(99, ((s.memory[ruleId]?.successRate ?? 85) * 0.9 + 10)),
+          totalRuns: (s.memory[ruleId]?.totalRuns ?? 0) + 1,
+          lastFix: action.command,
+          lastOutcome: "success" as const,
+        },
+      },
+    }));
+    toast.success(`Auto-healed: ${RULES.find((r) => r.id === ruleId)?.name}`, { icon: "✅" });
+  } else {
+    set((s) => ({
+      decisions: s.decisions.map((d) =>
+        d.id === id
+          ? { ...d, status: "escalated" as AgentDecisionStatus, verified: false, outcome: "failed", resolvedAt }
+          : d
+      ),
+      stats: {
+        ...s.stats,
+        totalActions: s.stats.totalActions + 1,
+        escalations: s.stats.escalations + 1,
+        lastActionAt: resolvedAt,
+        successRate: Math.round(
+          ((s.stats.successRate * s.stats.totalActions) / (s.stats.totalActions + 1)) * 10
+        ) / 10,
+      },
+      memory: {
+        ...s.memory,
+        [ruleId]: {
+          ...(s.memory[ruleId] ?? { ruleId, name: ruleId, totalRuns: 0, lastFix: action.command }),
+          ruleId,
+          name: RULES.find((r) => r.id === ruleId)?.name ?? ruleId,
+          successRate: Math.max(60, ((s.memory[ruleId]?.successRate ?? 85) * 0.95)),
+          totalRuns: (s.memory[ruleId]?.totalRuns ?? 0) + 1,
+          lastFix: action.command,
+          lastOutcome: "failed" as const,
+        },
+      },
+    }));
+    toast.error(`Auto-heal failed — escalated to on-call: ${RULES.find((r) => r.id === ruleId)?.name}`, {
+      icon: "📟",
+    });
+  }
+}
+
 export const useAgentStore = create<AgentStore>((set, get) => ({
   decisions: [],
   stats: {
@@ -344,7 +466,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
         // Autonomous flow: analyze → decide → execute → verify
         if (agentMode === "autonomous") {
-          get()._runDecisionFlow(id, rule.action);
+          runDecisionFlow(id, rule.action, set, get);
         } else {
           // Supervised: move to pending_approval
           setTimeout(() => {
@@ -368,7 +490,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         d.id === id ? { ...d, status: "executing" as AgentDecisionStatus } : d
       ),
     }));
-    get()._runDecisionFlow(id, decision.action);
+    runDecisionFlow(id, decision.action, set, get);
   },
 
   reject: (id: string) => {
@@ -391,117 +513,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   clearAll: () => {
     set({ decisions: [], activeRules: {} });
   },
-
-  // Internal — not exposed in type but callable via get()
-  _runDecisionFlow: async (id: string, action: AgentAction) => {
-    const appendLog = (line: string) => {
-      set((s) => ({
-        decisions: s.decisions.map((d) =>
-          d.id === id ? { ...d, executionLog: [...d.executionLog, line] } : d
-        ),
-      }));
-    };
-
-    // Analyzing phase
-    set((s) => ({
-      decisions: s.decisions.map((d) =>
-        d.id === id ? { ...d, status: "analyzing" as AgentDecisionStatus } : d
-      ),
-    }));
-    await delay(1800);
-
-    // Deciding phase
-    set((s) => ({
-      decisions: s.decisions.map((d) =>
-        d.id === id ? { ...d, status: "deciding" as AgentDecisionStatus } : d
-      ),
-    }));
-    await delay(1200);
-
-    // Executing phase
-    set((s) => ({
-      decisions: s.decisions.map((d) =>
-        d.id === id ? { ...d, status: "executing" as AgentDecisionStatus } : d
-      ),
-    }));
-
-    const logs = EXEC_LOGS[action.type](action.target, action.command);
-    for (const line of logs) {
-      await delay(550);
-      appendLog(line);
-    }
-
-    // Verifying phase
-    set((s) => ({
-      decisions: s.decisions.map((d) =>
-        d.id === id ? { ...d, status: "verifying" as AgentDecisionStatus } : d
-      ),
-    }));
-    await delay(1500);
-
-    // 88% success rate simulation
-    const succeeded = Math.random() > 0.12;
-    const resolvedAt = new Date().toISOString();
-    const ruleId = get().decisions.find((d) => d.id === id)?.ruleId ?? "";
-
-    if (succeeded) {
-      set((s) => ({
-        decisions: s.decisions.map((d) =>
-          d.id === id
-            ? { ...d, status: "resolved" as AgentDecisionStatus, verified: true, outcome: "success", resolvedAt }
-            : d
-        ),
-        stats: {
-          ...s.stats,
-          totalActions: s.stats.totalActions + 1,
-          lastActionAt: resolvedAt,
-          successRate: Math.round(
-            ((s.stats.successRate * s.stats.totalActions + 100) / (s.stats.totalActions + 1)) * 10
-          ) / 10,
-        },
-        memory: {
-          ...s.memory,
-          [ruleId]: {
-            ...(s.memory[ruleId] ?? { ruleId, name: ruleId, totalRuns: 0, lastFix: action.command }),
-            ruleId,
-            name: RULES.find((r) => r.id === ruleId)?.name ?? ruleId,
-            successRate: Math.min(99, ((s.memory[ruleId]?.successRate ?? 85) * 0.9 + 10)),
-            totalRuns: (s.memory[ruleId]?.totalRuns ?? 0) + 1,
-            lastFix: action.command,
-            lastOutcome: "success",
-          },
-        },
-      }));
-      toast.success(`Auto-healed: ${RULES.find((r) => r.id === ruleId)?.name}`, { icon: "✅" });
-    } else {
-      set((s) => ({
-        decisions: s.decisions.map((d) =>
-          d.id === id
-            ? { ...d, status: "escalated" as AgentDecisionStatus, verified: false, outcome: "failed", resolvedAt }
-            : d
-        ),
-        stats: {
-          ...s.stats,
-          totalActions: s.stats.totalActions + 1,
-          escalations: s.stats.escalations + 1,
-          lastActionAt: resolvedAt,
-          successRate: Math.round(
-            ((s.stats.successRate * s.stats.totalActions) / (s.stats.totalActions + 1)) * 10
-          ) / 10,
-        },
-        memory: {
-          ...s.memory,
-          [ruleId]: {
-            ...(s.memory[ruleId] ?? { ruleId, name: ruleId, totalRuns: 0, lastFix: action.command }),
-            ruleId,
-            name: RULES.find((r) => r.id === ruleId)?.name ?? ruleId,
-            successRate: Math.max(60, ((s.memory[ruleId]?.successRate ?? 85) * 0.95)),
-            totalRuns: (s.memory[ruleId]?.totalRuns ?? 0) + 1,
-            lastFix: action.command,
-            lastOutcome: "failed",
-          },
-        },
-      }));
       toast.error(`Auto-heal failed — escalated to on-call: ${RULES.find((r) => r.id === ruleId)?.name}`, {
         icon: "📟",
       });
